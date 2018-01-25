@@ -3,40 +3,49 @@
 #include <omp.h>
 #define N 2
 
-double moy(int debut, int fin, int *elements[8]){
+struct sequences{
+  int debut;
+  int fin;
+};
+
+double moy(int debut, int fin, int* elements){
 	int somme =0;
 	for (int i = debut; i <= fin; i++)
 	{
 		somme += elements[i];
-		printf("la somme %d\n",somme);
 	}
-	return (double)(somme/(fin-debut));
+	return (double)somme/(1+fin-debut);
 }
-
-struct sequences{
-	int debut;
-	int fin;
-};
 
 int main()
 {
-  int elements[8] = {0,1,2,3,4,5,10,9};
+  printf("ok\n");
+  int elements[100];
+
+  for (long i = 0; i < 100; i++)
+  {
+    elements[i] = rand()%10;
+  }
+  printf("%d,%d,%d\n",elements[2],elements[5],elements[10]);
   double moyennes[N];
-  struct sequences seq[2];
-  seq[0].debut = 0;
-  seq[0].fin = 3;
-  seq[1].debut = 5;
-  seq[1].fin = 6;
+  struct sequences seq[10000000];
+  for (long i = 0; i < 10000000; i++)
+  {
+    seq[i].debut = rand()%10000000;
+    seq[i].fin = rand()%(10000001-seq[i].debut)+seq[i].debut;
+  }
 
   for (int i = 0; i < N; i++)
   {
-  	moyennes[i] = moy(seq->debut,seq->fin,elements);
+  	moyennes[i] = (double)moy(seq[i].debut,seq[i].fin,elements);
   }
 
   printf("moyennes : [");
   for (int i = 0; i < N; i++)
   {
-  	printf("%f ,",moyennes[i]);
+  	printf("%f ,",(double)moyennes[i]);
   }
   printf("]\n");
+
+  return 0;
 }
