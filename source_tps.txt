@@ -1,0 +1,1 @@
+cp -r ~pwacreni/PAP-2018/TP2-omp-nested/ /cible
