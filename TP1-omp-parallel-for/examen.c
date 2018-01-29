@@ -41,6 +41,7 @@ int main()
   #pragma omp parallel for schedule(static)
   for (long i = 0; i < 100000; i++)
   {
+    #pragma omp critical
   	moyennes[i] = (double)moy(seq[i].debut,seq[i].fin,elements);
   }
 
