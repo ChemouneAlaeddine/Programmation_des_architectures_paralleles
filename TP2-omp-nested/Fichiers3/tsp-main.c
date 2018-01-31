@@ -5,9 +5,9 @@
 #include <limits.h>
 #include <sys/time.h>
 
-// #include <omp.h>
+#include <omp.h>
 
-#define MAXE  30
+#define MAXE	30
 
 typedef int DTab_t [MAXE] [MAXE];
 
@@ -36,12 +36,12 @@ int NrTowns ;
 int grain;
 
 
-#define MAXX  100
-#define MAXY  100
+#define MAXX	100
+#define MAXY	100
 typedef struct
-    {
-     int x, y ;
-    } coor_t ;
+		{
+		 int x, y ;
+		} coor_t ;
 
 typedef coor_t coortab_t [MAXE] ;
 coortab_t towns ;
@@ -142,36 +142,81 @@ inline int present (int city, int hops, int mask)
 
 void tsp (int hops, int len, int *path, int mask)
 {
+  //if (len + distance[0][path[hops-1]]>= minimum)
+    //return;
  int i ;
  int me, dist ;
+ 
  if (hops == NrTowns)
    {
-    #pragma omp critical
+    if (len +  distance[0][path[NrTowns-1]]< minimum)
+      #pragma omp critical
      if (len +  distance[0][path[NrTowns-1]]< minimum)
        {
-   minimum = len +  distance[0][path[NrTowns-1]];
-   printf ("found path len = %3d :", minimum) ;
-   #pragma omp parallel for if(hops <= grain)
-   for (i=0; i < NrTowns; i++)
-     printf ("%2d ", path[i]) ;
-   printf ("\n") ;
+	 minimum = len +  distance[0][path[NrTowns-1]];
+	 printf ("found path len = %3d :", minimum) ;
+	 for (i=0; i < NrTowns; i++)
+	   printf ("%2d ", path[i]) ;
+	 printf ("\n") ;
        }
    }
  else
    {
      me = path [hops-1] ;
-     
+     if(hops <= grain){
+     #pragma omp parallel for if (hops <= grain) num_threads(NrTowns-hops) schedule(dynamic)
+     //#pragma omp parallel for if (grain)
+     for (i=0; i < NrTowns; i++)
+       {
+	 if (!present (i, hops, mask))
+	   {
+       //omp_set_nested(1);
+       int mypath[NrTowns];
+       memcpy(mypath,path,hops*sizeof(int));
+	     
+       mypath [hops] = i ;
+	     dist = distance[me][i] ;
+	     tsp (hops+1, len+dist, mypath,  mask | (1 << i)) ;
+	   }
+       }
+     }else{
      for (i=0; i < NrTowns; i++)
        {
    if (!present (i, hops, mask))
      {
-       path [hops] = i ;
+       omp_set_nested(1);
+       int mypath[NrTowns];
+       memcpy(mypath,path,hops*sizeof(int));
+       
+       mypath [hops] = i ;
        dist = distance[me][i] ;
-       tsp (hops+1, len+dist, path,  mask | (1 << i)) ;
+       tsp (hops+1, len+dist, mypath,  mask | (1 << i)) ;
      }
        }
+     }
      
    }
+}
+
+void par_tsp ()
+{
+  int i,j,k;
+  #pragma omp parallel for collapse(3) schedule(runtime)
+  for (i=1; i < NrTowns; i++)
+    for(j=1; j < NrTowns; j++)
+      for(k=1; k < NrTowns; k++)
+        if(i != j && i != k && j != k)
+        {
+          int chemin[NrTowns];
+          chemin[0] = 0;
+          chemin[1] = i;
+          chemin[2] = j;
+          chemin[3] = k;
+          int dist = distance[0][i] + distance[i][j] + distance[j][k];
+          //if (dist + distance[0][chemin[4-1]]>= minimum)
+            //continue;
+          tsp (4, dist, chemin,1) ;
+        }
 }
 
 int main (int argc, char **argv)
@@ -183,8 +228,8 @@ int main (int argc, char **argv)
 
    if (argc < 3 || argc > 4)
      {
-  fprintf (stderr, "Usage: %s  <ncities> <seed> [grain]\n",argv[0]) ;
-  exit (1) ;
+	fprintf (stderr, "Usage: %s  <ncities> <seed> [grain]\n",argv[0]) ;
+	exit (1) ;
      }
 
    if (argc ==4)
@@ -204,10 +249,9 @@ int main (int argc, char **argv)
 
    path [0] = 0;
    
-   tsp(1,0,path,1);
-   // commenté
-   //printPath(path);
-   
+   //tsp(1,0,path,1);
+   par_tsp();
+
    gettimeofday(&t2,NULL);
    
    temps = TIME_DIFF(t1,t2);

@@ -5,9 +5,9 @@
 #include <limits.h>
 #include <sys/time.h>
 
-#include <omp.h>
+// #include <omp.h>
 
-#define MAXE	30
+#define MAXE  30
 
 typedef int DTab_t [MAXE] [MAXE];
 
@@ -36,12 +36,12 @@ int NrTowns ;
 int grain;
 
 
-#define MAXX	100
-#define MAXY	100
+#define MAXX  100
+#define MAXY  100
 typedef struct
-		{
-		 int x, y ;
-		} coor_t ;
+    {
+     int x, y ;
+    } coor_t ;
 
 typedef coor_t coortab_t [MAXE] ;
 coortab_t towns ;
@@ -147,8 +147,6 @@ void tsp (int hops, int len, int *path, int mask)
  
  if (hops == NrTowns)
    {
-    //if (len +  distance[0][path[NrTowns-1]]< minimum)
-      //#pragma omp critical
      if (len +  distance[0][path[NrTowns-1]]< minimum)
        {
    minimum = len +  distance[0][path[NrTowns-1]];
@@ -161,37 +159,16 @@ void tsp (int hops, int len, int *path, int mask)
  else
    {
      me = path [hops-1] ;
-     if(hops <= grain){
-     //#pragma omp parallel for if (hops <= grain) num_threads(NrTowns-hops) schedule(dynamic)
-     //#pragma omp parallel for if (grain)
+     
      for (i=0; i < NrTowns; i++)
        {
    if (!present (i, hops, mask))
      {
-       //omp_set_nested(1);
-       int mypath[NrTowns];
-       memcpy(mypath,path,hops*sizeof(int));
-       
-       mypath [hops] = i ;
+       path [hops] = i ;
        dist = distance[me][i] ;
-       tsp (hops+1, len+dist, mypath,  mask | (1 << i)) ;
+       tsp (hops+1, len+dist, path,  mask | (1 << i)) ;
      }
        }
-     }else{
-     for (i=0; i < NrTowns; i++)
-       {
-   if (!present (i, hops, mask))
-     {
-       omp_set_nested(1);
-       int mypath[NrTowns];
-       memcpy(mypath,path,hops*sizeof(int));
-       
-       mypath [hops] = i ;
-       dist = distance[me][i] ;
-       tsp (hops+1, len+dist, mypath,  mask | (1 << i)) ;
-     }
-       }
-     }
      
    }
 }
@@ -205,8 +182,8 @@ int main (int argc, char **argv)
 
    if (argc < 3 || argc > 4)
      {
-	fprintf (stderr, "Usage: %s  <ncities> <seed> [grain]\n",argv[0]) ;
-	exit (1) ;
+  fprintf (stderr, "Usage: %s  <ncities> <seed> [grain]\n",argv[0]) ;
+  exit (1) ;
      }
 
    if (argc ==4)
@@ -227,6 +204,8 @@ int main (int argc, char **argv)
    path [0] = 0;
    
    tsp(1,0,path,1);
+   // commenté
+   //printPath(path);
    
    gettimeofday(&t2,NULL);
    
