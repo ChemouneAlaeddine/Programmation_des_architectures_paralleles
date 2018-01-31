@@ -147,8 +147,8 @@ void tsp (int hops, int len, int *path, int mask)
  
  if (hops == NrTowns)
    {
-    if (len +  distance[0][path[NrTowns-1]]< minimum)
-      #pragma omp critical
+    //if (len +  distance[0][path[NrTowns-1]]< minimum)
+      //#pragma omp critical
      if (len +  distance[0][path[NrTowns-1]]< minimum)
        {
    minimum = len +  distance[0][path[NrTowns-1]];
@@ -162,7 +162,7 @@ void tsp (int hops, int len, int *path, int mask)
    {
      me = path [hops-1] ;
      if(hops <= grain){
-     #pragma omp parallel for if (hops <= grain) num_threads(NrTowns-hops) schedule(dynamic)
+     //#pragma omp parallel for if (hops <= grain) num_threads(NrTowns-hops) schedule(dynamic)
      //#pragma omp parallel for if (grain)
      for (i=0; i < NrTowns; i++)
        {
