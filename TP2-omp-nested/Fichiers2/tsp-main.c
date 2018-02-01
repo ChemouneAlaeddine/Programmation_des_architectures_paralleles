@@ -151,7 +151,6 @@ void tsp (int hops, int len, int *path, int mask)
        {
    minimum = len +  distance[0][path[NrTowns-1]];
    printf ("found path len = %3d :", minimum) ;
-   #pragma omp parallel for if(hops <= grain)
    for (i=0; i < NrTowns; i++)
      printf ("%2d ", path[i]) ;
    printf ("\n") ;
@@ -160,14 +159,19 @@ void tsp (int hops, int len, int *path, int mask)
  else
    {
      me = path [hops-1] ;
-     
+    #pragma omp parallel for if(hops <= grain) 
      for (i=0; i < NrTowns; i++)
        {
    if (!present (i, hops, mask))
      {
-       path [hops] = i ;
+
+      //omp_set_nested(1);
+       int mypath[NrTowns];
+       memcpy(mypath,path,hops*sizeof(int));
+
+       mypath [hops] = i ;
        dist = distance[me][i] ;
-       tsp (hops+1, len+dist, path,  mask | (1 << i)) ;
+       tsp (hops+1, len+dist, mypath,  mask | (1 << i)) ;
      }
        }
      

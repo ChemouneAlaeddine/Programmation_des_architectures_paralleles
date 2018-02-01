@@ -146,7 +146,6 @@ void tsp (int hops, int len, int *path, int mask)
     //return;
  int i ;
  int me, dist ;
- 
  if (hops == NrTowns)
    {
     if (len +  distance[0][path[NrTowns-1]]< minimum)
