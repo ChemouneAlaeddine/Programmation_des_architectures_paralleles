@@ -142,8 +142,8 @@ inline int present (int city, int hops, int mask)
 
 void tsp (int hops, int len, int *path, int mask)
 {
-  //if (len + distance[0][path[hops-1]]>= minimum)
-    //return;
+  if (len + distance[0][path[hops-1]]>= minimum)
+    return;
  int i ;
  int me, dist ;
  if (hops == NrTowns)
@@ -167,16 +167,27 @@ void tsp (int hops, int len, int *path, int mask)
      //#pragma omp parallel for if (grain)
      for (i=0; i < NrTowns; i++)
        {
+        
 	 if (!present (i, hops, mask))
 	   {
-       //omp_set_nested(1);
+
+       omp_set_nested(1);
        int mypath[NrTowns];
+       
+       //int* mypath = malloc(sizeof(NrTowns));
+
        memcpy(mypath,path,hops*sizeof(int));
 	     
+       #pragma omp task firstprivate(i)
+
        mypath [hops] = i ;
 	     dist = distance[me][i] ;
 	     tsp (hops+1, len+dist, mypath,  mask | (1 << i)) ;
+       
+       //free(mypath);
 	   }
+     #pragma omp taskwait
+     
        }
      }else{
      for (i=0; i < NrTowns; i++)
@@ -200,7 +211,7 @@ void tsp (int hops, int len, int *path, int mask)
 void par_tsp ()
 {
   int i,j,k;
-  #pragma omp parallel for collapse(3) schedule(runtime)
+  #pragma omp parallel for collapse(3) schedule(dynamic)
   for (i=1; i < NrTowns; i++)
     for(j=1; j < NrTowns; j++)
       for(k=1; k < NrTowns; k++)
@@ -212,8 +223,8 @@ void par_tsp ()
           chemin[2] = j;
           chemin[3] = k;
           int dist = distance[0][i] + distance[i][j] + distance[j][k];
-          //if (dist + distance[0][chemin[4-1]]>= minimum)
-            //continue;
+          if (dist + distance[0][chemin[4-1]]>= minimum)
+            continue;
           tsp (4, dist, chemin,1) ;
         }
 }

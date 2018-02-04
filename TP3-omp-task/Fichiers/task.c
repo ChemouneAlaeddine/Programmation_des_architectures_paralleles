@@ -12,7 +12,7 @@ void generer()
     printf("execution de la tache %d par le thread %d >>>> %s <<<< \n",
     	i,omp_get_thread_num(), chaine);	
   
-//#pragma omp taskwait
+#pragma omp taskwait
 }
 
 int main()
@@ -22,7 +22,8 @@ int main()
   {
 #pragma omp master
     generer();
-    printf("%d approche de la barriere implicite \n", omp_get_thread_num());
+    printf("%d approche de la barriere implicite \n",
+     omp_get_thread_num());
   }
   return 0;
 }

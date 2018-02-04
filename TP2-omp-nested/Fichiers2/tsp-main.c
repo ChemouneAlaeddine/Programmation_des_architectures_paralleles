@@ -165,7 +165,7 @@ void tsp (int hops, int len, int *path, int mask)
    if (!present (i, hops, mask))
      {
 
-      //omp_set_nested(1);
+       omp_set_nested(1);
        int mypath[NrTowns];
        memcpy(mypath,path,hops*sizeof(int));
 
