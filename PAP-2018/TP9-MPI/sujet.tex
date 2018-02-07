@@ -1,0 +1,502 @@
+\documentclass[a4paper,dvips]{article}
+
+\usepackage{fullpage}
+\usepackage{graphicx}
+\usepackage{boxedminipage}
+\usepackage[latin9]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[francais]{babel}
+\usepackage[obeyspaces]{url} %\documentclass{article}
+
+\parindent=0cm
+\begin{document}
+
+
+
+\title{Introduction à MPI}
+\author{} \date{}
+\maketitle
+
+Il s'agit de s'initier à MPI et d'observer les comportements de la latence
+réseau. On pourra garder sous les yeux les pages de man des fonctions
+MPI, mais sur \url{http://mpi.deino.net/mpi_functions/} 
+la documentation est plus
+fournie et d'autres exemples de codes sont disponibles.
+Une documentation très détaillée est disponible sur \url{http://www.netlib.org/utk/papers/mpi-book/mpi-book.html} .
+
+
+
+\section{Utilisation de MPI au CREMI}
+\subsection{Paramètres MPI}
+% Pour éviter de vous marcher trop les uns sur les autres, les 
+% expériences seront d'abord menées entre votre propre machine et celle de 
+% votre voisin: 
+
+Modifiez le fichier \verb+mymachines+ pour y mettre le nom de votre
+machine sur la première ligne, et la machine de votre voisin sur la
+deuxième ligne.
+
+Vérifiez que vous pouvez vous connecter via ssh sur toutes les
+machines listée dans  \verb+mymachines+.
+
+
+Pour lancer le programme \texttt{hellow} au CREMI entrer 
+\verb+make -e PROG=hellow run+. 
+%\verb+./run.sh ping+
+%
+C'est le même programme qui est lancé sur différentes machines (appelées 
+\emph{n{\oe}uds} et numérotés à partir de 0). 
+
+Note: il peut arriver que l'exécution échoue:
+\begin{verbatim}
+mpirun.openmpi was unable to launch the specified application as it could not access 
+or execute an executable:
+
+Executable: ./hellow 
+\end{verbatim}
+
+C'est simplement parce que le fichier n'a pas eu le temps d'apparaître,
+via le réseau, sur l'autre machine. Relancez la commande, et cette fois 
+cela fonctionnera. 
+
+\subsection{Utilisation de ssh avec une clé}
+
+Pour éviter de taper son mot de passe sans arrêt générez une paire clé
+publique/privée:
+
+\verb+ssh-keygen -t dsa+
+
+Validez autant de fois qu'il le faut (gardez les valeurs par défaut). Utilisez une passphrase vide, à moins 
+que vous sachiez gérer un agent ssh. Enfin, autorisez l'utilisation de 
+la clé:
+
+\verb+cat ~/.ssh/id_dsa.pub >> ~/.ssh/authorized_keys+
+
+
+Vérifiez avec un \verb+ssh localhost+ que vous n'avez pas à taper de mot de passe 
+pour vous connecter à la main à la machine de votre voisin. Il faudra au 
+besoin confirmer l'identité de la machine. 
+
+Il se peut que ssh vous indique 
+\verb+WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!+
+%Vérifiez que l'identité indiquée est bien celle de la machine. C'est 
+C'est en général 
+simplement parce que les machines 
+%infinis 
+ont été réinstallées et ont 
+donc changé d'identité. Il faut supprimer l'ancienne identité 
+(\emph{Offending key}) du fichier \verb+.ssh/known_hosts+ à la ligne 
+indiquée. 
+
+
+
+% \section{Hello Plafrim !}  
+% \subsection{Plafrim}  
+% Pour ces TP nous utiliserons Plafrim, une plaforme d'expérimentation
+% en mathématiques et en informatique. Plafrim est composée d'une
+% dizaine de configurations :
+
+%  {\small \url{https://plafrim.bordeaux.inria.fr/doku.php?id=plateforme:configurations#quick_ref_des_machines}}\\
+
+
+% \subsection{Le programme \og Hello World !\fg{}}
+
+% Consulter le code du programme \verb+hellow.c+. Il contient quatre appels
+% à la bibliothèque MPI: 
+
+% \begin{itemize}
+% \item \verb+MPI_Init(&argc,&argv);+ permet d'initialiser la
+% bibliothèque MPI: on lui passe l'adresse de \verb+argc+ et \verb+argv+
+% pour qu'elle puisse savoir comment les n½uds doivent se connecter.
+% \item \verb+MPI_Comm_size(MPI_COMM_WORLD,&size);+ permet de
+% récupérer le nombre de n½uds lancés.
+% \item \verb+MPI_Comm_rank(MPI_COMM_WORLD,&rank);+ permet de récupérer
+% son propre numéro de n½ud (entre $0$ et \verb+num+$-1$).
+% \item \verb+MPI_Finalize()+ permet de terminer proprement le processus.
+% \end{itemize}
+
+% La constante \verb+MPI_COMM_WORLD+ est le communicateur utilisé: il inclut tous
+% les n½uds lancés.
+
+% \subsection{Lancement du  \og Hello World !\fg{}}  
+% Pour lancer ce programme sur Plafrim il s'agit de
+% \begin{enumerate}
+% \item se connecter sur Plafrim ;
+% \item copier les fichiers sur Plafrim ;
+% \item charger l'environnement de compilation intel;
+% \item compiler le programme à l'aide de \texttt{mpicc};
+% \item de tester le programme sur la machine de développement ;
+% \item de lancer le programme en utilisant \texttt{qsub};
+% \item d'analyser les fichiers résultats. 
+% \end{enumerate}
+
+
+% \subsubsection{Se connecter}
+
+% Vérifiez que vous pouvez vous connecter en suivant les modalités 
+% données par e-mail. 
+
+% \subsubsection{Copier les fichiers}
+
+% Depuis un shell exécuté au CREMI, recopier votre répertoire
+% \texttt{fichiers} à l'aide d'une commande telle que :
+
+% \verb#scp -r -P 10000 fichiers votreloginplafrim@blabla.fr:.#
+
+ 
+% % \url{https://plafrim.bordeaux.inria.fr/doku.php?id=quick_start}. 
+
+% \subsubsection{Environnement Intel}
+
+% Charger l'environnement de compilation \texttt{intel} via la commande
+% :
+
+% \texttt{\bf module add compiler/intel/stable mpi/intel/stable} 
+
+% \subsubsection{Compilation MPI}
+
+
+% Pour compiler on utilisera directement la commande \texttt{\bf mpicc} en
+% lieu et place de \texttt{gcc}. 
+% \begin{verbatim}
+% mpicc hellow.c -o hellow
+% \end{verbatim}
+
+
+% \subsubsection{Exécution MPI sur une machine}
+
+%  Pour tester le programme sur la machine de développement, entrez la commande
+%   \texttt{mpirun -np 2 ./hellow} 
+
+
+% \subsubsection{Exécution MPI à l'aide de qsub}
+
+
+% Pour lancer une exécution sur la grappe fourmi on utilisera la
+% commande  \texttt{\bf qsub exemple\_de\_batch.pbs} qui soumet la tâche
+% décrite dans le fichier donné en paramètre à un ordonnanceur de tâches 
+% (batch scheduler) :
+
+% \url{https://plafrim.bordeaux.inria.fr/doku.php?id=utilisation:batchs:fichier_de_batch}.
+
+% \smallskip
+
+% Ci-dessous figure un modèle de fichier batch décrivant le lancement
+% d'un exécutable MPI; dans ce fichier les lignes commençant par
+% \verb|#PBS| ne sont pas des commentaires mais bien des directives
+% données à l'ordonnanceur. L'ordonnanceur les utilise pour réserver
+% des n½uds et aussi pour fabriquer des variables d'environnement utiles
+% à MPI.
+
+% {\small 
+% \begin{verbatim}
+% #PBS -N nom_du_job 
+% #PBS -M VOTREMAIL@etu.u-bordeaux.fr 
+% #envoi un mail au début (b=begin), à la fin (e=end) et en cas d'arrêt brutal (a=abort) du batch 
+% #PBS -m a 
+% # preciser le temps en heures, minutes, secondes
+% #PBS -l walltime=00:00:30 
+% # preciser la memoire en megabytes ou gigabytes
+% #PBS -l mem=1gb 
+% # nombre de noeuds et de coeurs par noeud
+% #PBS -l nodes=2:ppn=1 
+% # repertoire de travail dans lequel on soumet le batch
+% cd fichiers
+% #
+% #
+% module add compiler/intel/stable
+% module add mpi/intel/stable
+
+% mpirun ./hellow 
+% \end{verbatim}
+% }
+% Ce batch lancera le programme \verb#~/fichiers/hellow# sur deux c½urs
+% (en tout) de deux machines différentes.  La durée de réservation
+% demandée est de 30s. L'exécution du programme sera interrompue au bout
+% de 30s et un mail vous sera envoyé.
+
+% Deux fichiers seront produits \verb#~/fichiers/nom_du_job.exxxxxx# et
+% \verb#~/fichiers/nom_du_job.oxxxxxx# correspondants aux sorties standards de votre
+% processus.
+
+\section{Communication inter processus}  
+
+Modifier le programme pour faire communiquer les deux processus en
+utilisant :
+\begin{itemize}
+\item \verb+MPI_Send(buf,1,MPI_CHAR,1,0,MPI_COMM_WORLD);+ pour que le
+  processus 0 envoye un tableau \verb+buf+ de \verb+1+ caractère
+  (\verb+MPI_CHAR+) au n½ud $1$, avec le tag $0$.
+\item \verb+MPI_Recv(buf,1,MPI_CHAR,0,0,MPI_COMM_WORLD,&status);+ pour
+  que le processus 1 réceptionne un tableau \verb+buf+ de \verb+1+
+  caractère (\verb+MPI_CHAR+) envoyé par le n½ud $0$ avec le tag $0$
+  (il faut donc que ce soit le même que du côté émetteur). L'état de
+  la réception est stocké dans la variable \verb+status+ de type
+  \verb#MPI_Status#.
+\end{itemize}
+
+\section{Produit de Matrices}
+
+ \subsection{Communications point à point}
+Le programme \verb#mul_mat# met en ½uvre un produit de matrice ligne
+par ligne.  Compléter ce programme en suivant l'algorithme ci-dessous :
+
+{\small
+\begin{verbatim}
+tranche = N / size  // on suppose que c'est N est divisible par size 
+
+// Code processus 0
+Pour chaque processus i > 0 faire
+    Envoyer b à i
+    Envoyer à i les lignes a d'indices dans [i*tranche, (i+1) * tranche[ 
+
+Calculer les lignes de c pour les indices de [0, tranche[
+
+Pour chaque processus i > 0 faire
+    Recevoir dans c les lignes calculées par i 
+
+// Code processus k > 0
+
+Recevoir de 0 la matrice b
+Recevoir de 0 les lignes de a 
+
+Calculer les lignes de c (correspondant à la tranche de k)
+
+Envoyer à 0 les lignes de c
+\end{verbatim}
+}
+On notera que les processus esclaves n'ont pas besoin de recevoir toute
+la matrice a. 
+
+
+ \subsection{Communications collectives}
+ Recopier le programme \verb#mul-mat.c# et le script du batch dans des
+ nouveaux fichiers. Modifier ces fichiers pour remplacer les
+ communications point à point par des communications collectives
+ collectives (bcast, scatter, gather).  Comparer les temps de
+ transmission (phases de distribution et de collecte) et d'exécution
+ obtenus à ceux obtenus par la version point à point.
+
+
+
+%  \subsection{MPI + OMP}
+
+%  Introduire des directives OpenMP pour paralléliser les deux
+%  programmes. Compiler vos programmes avec la directive
+%  \texttt{-fopenmp}. Afin de lancer un seul processus par machine,
+%  produire deux scripts batch sur le modèle suivant :
+
+% \begin{verbatim}
+% uniq $PBS_NODEFILE > machines 
+
+% export OMP_NUM_THREADS=$PBS_NUM_PPN
+
+% mpirun -np $PBS_NUM_NODES -machinefile machines ./coll-mul-mat
+% \end{verbatim}
+
+
+\section{Mesures de performances}
+\subsection{Latence}
+
+Le programme \verb#ping.c# envoie un caractère d'une machine à une
+autre ("ping") et mesure le temps pris par les fonctions d'envoi et de
+réception.
+
+Est-ce une manière correcte de mesurer le temps que prend la
+communication ?
+
+Complétez le programme pour que la deuxième machine renvoie ce
+caractère ("pong") et la première machine le réceptionne, et mesurez la
+latence de l'aller-retour. Lancez plusieurs fois, constatez que la
+mesure fluctue. Doit-on prendre la valeur minimum, la moyenne, autre
+chose ?
+
+Pour effectuer ce calcul automatiquement, utilisez une boucle effectuant
+ce jeu de ping-pong 300 fois. Ajoutez avant celle-ci une
+première boucle, non mesurée, effectuant la même chose, mais quelques
+dizaines de fois pour «\,préchauffer les fils\,» (c'est-à-dire, passer dans
+le code de MPI quelques fois pour que les heuristiques des caches et
+prédiction de branchement, etc. se stabilisent).
+
+Ajoutez une boucle pour faire progresser \verb+N+ de manière géométrique
+(de facteur 2) jusqu'à $1024*1024$. Utilisez \verb+gnuplot+ pour tracer
+une courbe en fonction de la taille. Utilisez la commande
+\verb+set logscale+ pour passer en échelle logarithmique.
+
+
+%Comparez les performances exécutions au CREMI et sur Plafrim
+
+\subsection{Et la bande passante ?}
+
+Comment mesurer la bande passante (en méga-octets échangés par
+seconde) ? Tracez de même une courbe.
+
+% \section{Et sur InfiniBand ?}
+
+% Connectez-vous à la machine \verb+infini1+, lancez \verb+make clean+
+% pour recompiler de zéro avec la version de MPI installée sur
+% \verb+infini[1-4]+ qui utilise des cartes réseau InfiniBand, bien plus
+% rapides que le réseau Ethernet habituel.
+
+%Dans le \verb+Makefile+, décommentez la ligne
+%\verb+MPICH=/usr/local/stow/...+ correspondant à la version de MPICH
+%utilisant les cartes Infiniband installées dans ces machines et
+%commentez la ligne \verb+MPICH=/usr/local/+ correspondant à la version
+%utilisant TCP.
+
+%Recommencez les mesures. Est-ce intéressant ?
+%D'où viennent ces différences de débit et de latence ?
+
+\subsection{Mémoire partagée vs. réseau}
+
+En mettant dans le fichier \verb+mymachines+ plusieurs fois le même
+nom de machine les processus seront lancés sur les différents
+processeurs de cette machine et les communications se feront par mémoire
+partagée.  
+%Puisque vos machines ont 8 c½urs, répartissez 8 processus
+%(en mettant\verb+-np+ à 8 dans le fichier \verb+Makefile+). 
+Désactivez la prise de verrou, car sinon cela ne pourrait pas se
+lancer puisqu'il essaierait de prendre le verrou plusieurs
+fois. 
+%Observez la latence obtenue par le programme de test en anneau.
+
+
+\subsection{Isend}
+
+Dans le code du n½ud 0, remplacez \verb+MPI_Send()+ par le couple
+« \verb+MPI_Isend()+ puis \verb+MPI_Wait()+ »: quasiment rien n'est changé, on
+donne juste à \verb+MPI_Isend+ l'adresse d'un tampon de requête de type
+\verb+MPI_Request+, que l'on fournit ensuite à \verb+MPI_Wait+ pour attendre
+la fin de la requête d'émission. Constatez que cela ne change pas la
+latence.
+
+Changez les % \verb+MPI_Wtime+
+ \verb+gettimeofday()+ pour mesurer séparément le temps mis par
+\verb+MPI_Isend()+ et par \verb+MPI_Wait+ (le plus simple est de cumuler
+les différences).  Tracez une jolie courbe: dans \verb+data+, rentrez
+les données ainsi:
+
+\begin{verbatim}
+1 temps_MPI_Isend_1 temps_MPI_Wait_1
+2 temps_MPI_Isend_2 temps_MPI_Wait_2
+...
+\end{verbatim}
+
+Et tapez ceci dans \verb+gnuplot+:
+
+\begin{verbatim}
+set logscale
+plot "data" using ($1):($2) with linespoints, "data" using ($1):($3) with linespoints, \
+	"data" using ($1):($2)+($3) with linespoints
+\end{verbatim}
+
+pour tracer les courbes et leur somme en même temps.
+
+On aperçoit vraiment nettement une cassure, qui correspond au changement
+de stratégie entre envoi direct et envoi par rendez-vous: avec
+rendez-vous, ce n'est alors plus \verb+MPI_Isend()+ qui fait l'envoi
+effectif des données, mais \verb+MPI_Wait()+.
+
+%Dans le \verb+Makefile+, remplacez
+%
+%\verb+MPICH=/usr+
+%
+%par
+%
+%\verb+MPICH=/net/cremi/sthibaul/stow/mpich-mad+
+%
+%Réessayez, que constatez-vous ? L'implémentation MPICH-Madeleine de MPI
+%est en effet multithreadée, ce qui lui permet d'être bien plus
+%réactive.
+
+\subsection{Un anneau}
+
+Généralisez le programme à $n$ machines: le n½ud 0 envoie les données
+au n½ud 1, qui le retransmet au n½ud 2, etc jusqu'au n½ud $n-1$ qui
+l'envoie de nouveau au n½ud 0 (au CREMI modifiez l'option \verb+-np+ dans
+\verb+Makefile+ pour exécuter plus que 2 processus, il faudra ajouter
+d'autres noms de machines dans \verb+mymachines+). Comment la latence
+croît-elle avec $n$?
+
+%Essayez d'insérer un \verb+sleep(1)+ à différents endroits, observez
+%comment la latence évolue, expliquez.
+
+%\section{Nota}
+%
+%Avec une autre implémentation de MPI (telle que MPICH-Madeleine),
+%on aurait des courbes différentes, et l'on n'aurait pas forcément de
+%changement de comportement lors de l'insertion de \verb+sleep(1)+.
+%MPICH-Madeleine, par exemple, utilise des threads pour que les
+%communications puissent progresser en parallèle avec le programme
+%principal.
+
+
+
+% \subsection{MPI au CREMI}
+
+% Pour information voici comment utiliser MPI au CREMI.  
+
+
+% \subsubsection{Utilisation de ssh avec une clé}
+
+% Pour éviter de taper son mot de passe sans arrêt générez une paire clé
+% publique/privée:
+
+% \verb+ssh-keygen -t dsa+
+
+% Validez autant de fois qu'il le faut (gardez les valeurs par défaut). Utilisez une passphrase vide, à moins 
+% que vous sachiez gérer un agent ssh. Enfin, autorisez l'utilisation de 
+% la clé:
+
+% \verb+cat ~/.ssh/id_dsa.pub >> ~/.ssh/authorized_keys+
+
+
+% Vérifiez avec un \verb+ssh localhost+ que vous n'avez pas à taper de mot de passe 
+% pour vous connecter à la main à la machine de votre voisin. Il faudra au 
+% besoin confirmer l'identité de la machine. 
+
+% Il se peut que ssh vous indique 
+% \verb+WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!+
+% %Vérifiez que l'identité indiquée est bien celle de la machine. C'est 
+% C'est en général 
+% simplement parce que les machines 
+% %infinis 
+% ont été réinstallées et ont 
+% donc changé d'identité. Il faut supprimer l'ancienne identité 
+% (\emph{Offending key}) du fichier \verb+.ssh/known_hosts+ à la ligne 
+% indiquée. 
+
+% \subsubsection{Utilisation de MPI au CREMI}
+
+% % Pour éviter de vous marcher trop les uns sur les autres, les 
+% % expériences seront d'abord menées entre votre propre machine et celle de 
+% % votre voisin: 
+
+% Modifiez le fichier \verb+mymachines+ pour y mettre le nom de votre
+% machine sur la première ligne, et la machine de votre voisin sur la
+% deuxième ligne.
+
+% Vérifiez que vous pouvez vous connecter via ssh sur toutes les
+% machines listée dans  \verb+mymachines+.
+
+
+% Pour lancer le programme \texttt{hellow} au CREMI entrer 
+% \verb+make -e PROG=hellow run+. 
+% %\verb+./run.sh ping+
+% %
+% C'est le même programme qui est lancé sur différentes machines (appelées 
+% \emph{n{\oe}uds} et numérotés à partir de 0). 
+
+% Note: il peut arriver que l'exécution échoue:
+% \begin{verbatim}
+% mpirun.openmpi was unable to launch the specified application as it could not access 
+% or execute an executable:
+
+% Executable: ./hellow 
+% \end{verbatim}
+
+% C'est simplement parce que le fichier n'a pas eu le temps d'apparaître,
+% via le réseau, sur l'autre machine. Relancez la commande, et cette fois 
+% cela fonctionnera. 
+
+\end{document}

@@ -1,0 +1,422 @@
+\documentclass[A4wide]{article}
+\usepackage[french]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{palatino}
+\usepackage{fullpage}
+\usepackage{listings}
+
+
+\title{Introduction à OpenMP}
+\date{}
+
+
+\lstset{
+ language=C,
+ extendedchars=true,
+ basicstyle=\tt,%\scriptsize,
+%numbers=left, numberstyle=\tiny, stepnumber=2, numbersep=5pt,
+ lineskip=-2pt}
+
+
+
+\begin{document}
+\maketitle
+
+\section{Création d'une équipe de threads}
+
+
+La directive \verb&#pragma omp parallel& indique que l'instruction
+ou le bloc d'instructions suivant cette directive  doit être réalisé
+par une \emph{équipe} de threads. On appelle \emph{section parallèle}
+l'instruction ou le bloc concerné par la directive.
+
+
+\begin{lstlisting}[numbers=left, numberstyle=\tiny, stepnumber=1, numbersep=5pt]
+#include <stdio.h>
+
+int main() 
+{
+
+   printf("Bonjour !\n");
+   printf("Au revoir !\n");
+
+  return 0;
+}
+\end{lstlisting}
+
+
+\begin{enumerate}
+\item Modifiez le programme \verb#hello.c# en ajoutant une
+  directive \verb&parallel& en ligne 5.
+
+\item Compilez puis exécutez le programme comme-ci de rien n'était :
+  \verb#gcc hello.c ; ./a.out# .
+
+\item Recompilez en donnant cette fois l'option \verb#-fopenmp# à
+  \verb&gcc&.  Exécutez le programme plusieurs fois. Combien de
+  threads sont utilisés ? Comparez ce nombre au nombre de coeurs
+  (logiques) de votre machine. À quel moment s'affiche le message \og
+  \verb#Au revoir !#\fg{} ?
+
+\item La variable d'environnement \verb#OMP_NUM_THREADS# permet de
+  contrôler le nombre de threads utilisés par défaut. Lancez l'exécution
+  en entrant la commande \verb#OMP_NUM_THREADS=13 ./a.out# .
+
+\item La fonction \verb#omp_get_thread_num()# retourne le numéro
+  d'équipier (l'identité) du thread qui l'appelle. Sa mise en œuvre
+  nécessite l'inclusion du fichier \verb#<omp.h>#. Modifiez les deux
+  appels à \verb#printf()# de sorte à afficher également le numéro du
+  thread appelant. Compilez puis exécutez plusieurs fois le programme
+  en faisant varier le nombre de threads.  L'ordre d'exécution est-il
+  toujours le même ?
+
+\item Faites en sorte que chaque thread affiche également le message
+  \og Au revoir\fg{} en englobant dans une seule section parallèle les deux appels à
+  \verb&printf&. Testez le programme avec une bonne douzaine de threads. 
+
+
+% \item La directive \verb&#pragma omp critical& impose que chaque
+%   thread exécute l'instruction ou le bloc d'instructions suivant en
+%   solitaire. Le code gardé par la directive \verb#critical# est appelé
+%   \emph{section critique} et on dit que la section critique est
+%   exécutée en \emph{exclusion mutuelle}. Utiliser la directive
+%   \verb#critical# pour faire en sorte que les affichages des
+%   différents threads ne s'entremêle pas.
+
+\item La directive \verb&#pragma omp barrier& permet à une équipe de
+  threads de se fixer un rendez-vous (de s'attendre)  à une ligne
+  de code donnée. Insérer une directive \verb#barrier# entre les deux appels
+  à \verb#printf#. Compilez et testez le programme.
+
+\end{enumerate}
+
+
+
+\section{Section critique}
+ La directive \verb&#pragma omp critical& impose que chaque
+  thread exécute l'instruction ou le bloc d'instructions suivant en
+  solitaire. Le code gardé par la directive \verb#critical# est appelé
+  \emph{section critique} et on dit que la section critique est
+  exécutée en \emph{exclusion mutuelle}. Utiliser la directive
+  \verb#critical# pour faire en sorte que les affichages des
+  différents threads ne s'entremêlent pas (NB. on supprimera la barrière
+  placée lors de l'exercice précédent).
+
+\newpage
+\section{Variable partagée vs variable privée}
+
+Dans le programme \verb&partage.c&  on déclare \verb#k# et
+\verb#i# deux variables locales à la fonction \verb#main#. 
+
+\begin{lstlisting}[numbers=left, numberstyle=\tiny, stepnumber=1,  numbersep=5pt]
+#include <stdlib.h>
+#include <stdio.h>
+#include <omp.h>
+
+int 
+main() 
+{
+  
+  int k = 0;
+
+#pragma omp parallel 
+{
+  int i;
+  for(i = 0; i < 100000; i++) 
+    k++;
+ }
+ 
+ printf("nbthreads x 100000 = %d\n ",k); 
+ return 0;
+}
+\end{lstlisting}
+
+
+La variable \verb&k& est déclarée avant l'appel à la directive
+\verb&parallel&, cette variable sera partagée entre les différents
+threads : tout thread de la section parallèle suivante pourra
+consulter / modifier à loisir cette variable.
+
+La variable \verb&i& est déclarée à l'intérieur de la section
+parallèle, c'est une variable privée du thread :
+chaque thread aura son propre exemplaire et ne pourra pas modifier
+l'exemplaire d'un autre thread.
+
+\begin{enumerate}
+\item Compilez puis exécutez le programme \verb&partage.c&. On observe
+  que la valeur affichée est exceptionnellement un multiple de 100000 et que,
+  finalement, cette valeur change d'une exécution à l'autre.
+  \emph{Manipuler sans précaution une variable partagée conduit à un
+    résultat indéterminé.}
+
+\item Insérez une section critique en ligne 15, compilez, testez. Le
+  programme ne vous semble-t-il pas lent ?  
+
+% \item Remplacez la setion critique par une section atomic
+%   \verb&#pragma omp atomic&.
+\end{enumerate}
+
+
+
+\section{Distribution d'une boucle for}
+
+On cherche à calculer en parallèle la somme des éléments d'un vecteur
+dans le but de gagner du temps. Voici le code :
+
+\begin{lstlisting}[numbers=left, numberstyle=\tiny, stepnumber=1,  numbersep=5pt]
+int sum = 0;
+
+for(int i = 0; i < N; i++)
+   sum+=t[i];
+\end{lstlisting}
+
+
+Notre objectif est de calculer autant de fois plus vite qu'il y a de
+cœurs sur la machine. Pour cela il s'agit de distribuer (équitablement) les indices de la
+boucle \verb#for# aux différents threads en faisant en sorte que
+chaque indice soit traité exactement une fois. 
+À la lumière des exercices précédents (et sans écrire de
+programme) detérminer  quels sont les défauts/avantages les
+trois codes suivants :
+\newpage 
+\begin{enumerate}
+\item Version 1
+\begin{lstlisting}[numbers=left, numberstyle=\tiny, stepnumber=1,  numbersep=5pt]
+int sum = 0;
+
+#pragma omp parallel 
+  for(int i = 0; i < N; i++) 
+   sum+=t[i];
+\end{lstlisting}
+
+\item Version 2
+\begin{lstlisting}[numbers=left, numberstyle=\tiny, stepnumber=1,  numbersep=5pt]
+int sum = 0;
+int i = 0;
+
+#pragma omp parallel 
+{
+ int mon_i;
+ int ma_somme = 0; 
+ for(;;)
+  {
+    #pragma omp critical
+    mon_i = i++ ;
+ 
+    if (mon_i > N)
+       break;
+    
+    ma_somme += t[i];
+ }
+    #pragma omp critical
+    sum += ma_somme ;
+}
+\end{lstlisting}
+
+\item Version 3 où on utilise le nombre de threads engagés via un appel à \verb#omp_get_num_thread()# 
+\begin{lstlisting}[numbers=left, numberstyle=\tiny, stepnumber=1,  numbersep=5pt]
+int sum = 0;
+
+#pragma omp parallel 
+{
+ int mon_i;
+ int ma_somme = 0; 
+ int nb_threads =  omp_get_num_thread();
+
+  for(mon_i = omp_get_thread_num(); mon_i < N ; mon_i += nb_threads)
+    ma_somme += t[mon_i];
+
+    #pragma omp critical
+    sum += ma_somme ;
+}
+\end{lstlisting}
+\end{enumerate}
+
+
+La directive \verb&#pragma omp for& permet de coder efficacement la
+version 3 :
+
+\begin{lstlisting}[numbers=left, numberstyle=\tiny, stepnumber=1,  numbersep=5pt]
+int sum = 0;
+
+#pragma omp parallel 
+{
+int i;
+int ma_somme = 0; 
+ 
+#pragma omp for schedule(static,1)
+  for(i=0; i < N; i++)
+    ma_somme += t[i];
+
+    #pragma omp critical
+    sum += ma_somme ;
+}
+\end{lstlisting}
+
+La directive \verb#omp for# indique que les indices de la boucle qui
+suit sont à répartir entre les threads et la clause \verb#schedule#
+précise l'algorithme de distribution à utiliser. Il y a quatre principaux types de
+distribution :
+
+
+\begin{itemize}
+\item \verb#schedule(static)# indique que les indices
+sont à distribués équitablement en autant de blocs d'indices consécutifs qu'il y a
+de threads;
+
+\item \verb#schedule(static,k)# indique que les indices
+doivent être distribués cycliquement par blocs de k indices.
+
+\item \verb#schedule(dynamic,k)# indique que les indices doivent être
+  distribués à la demande par blocs de k indices. Notons que la
+  version 2 du code peut être obtenue en utilisant la clause
+  \verb#schedule(dynamic,1)#.
+
+\item \verb#schedule(guided,k)#  pour les curieux.
+\end{itemize}
+
+Notons enfin que la directive \verb#pragma omp parallel for# est la
+contraction de l'enchaînement des directives \verb#parallel# puis \verb#for#.\\
+
+
+Étudions ces différentes politiques à l'aide du programme \verb#boucle-for.c# :
+
+\begin{lstlisting}[numbers=left, numberstyle=\tiny, stepnumber=1,  numbersep=5pt]
+#include <stdlib.h>
+#include <stdio.h>
+
+#include <omp.h>
+
+int 
+main()
+{
+  int i;
+
+  for(i=0; i < 40; i++)
+    printf("%d traite %i\n",omp_get_thread_num(),i);
+
+  return 0;
+}
+\end{lstlisting}
+
+\begin{enumerate}
+\item Tout d'abord placez une directive \verb#parallel for# en ligne 10. Compilez et 
+testez plusieurs fois. 
+
+\item Modifiez le programme pour tester différentes politiques de
+  distribution.  Utilisez la commande \verb#./a.out | sort -n -k 3#
+  pour visualiser plus facilement le travail réalisé.
+\end{enumerate}
+
+
+\section{Calcul de la somme d'un tableau - réduction}
+
+Nous avons vu qu'il était nécessaire de protéger les accès aux
+variables partagées. Ceci peut se faire à l'aide de sections critiques
+mais aussi à l'aide d'instructions atomiques. Une section atomique est
+une section critique réduite à une instruction. Nous allons comparer
+le coût de différentes technique de protection sur le code suivant :
+
+\begin{lstlisting}%[numbers=left, numberstyle=\tiny, stepnumber=1,  numbersep=5pt]
+// premiere technique, TODO 
+  for (i=0; i<taille;i++) 
+    sum += tab[i];
+\end{lstlisting}
+
+Remplacez les TODO du programme \verb#sum.c#  par les techniques
+suivantes :
+
+\begin{enumerate}
+%\item une variable partagée protégée par un verrou OpenMP (lock),
+\item section \verb#parallel for# où la variable \verb#sum# partagée
+  est accédée en section critique,
+\item section \verb#parallel for# où la variable \verb#sum# partagée
+  est accédée en section atomique \verb&#pragma omp atomic&,
+\item réduction \verb&#pragma omp parallel for reduction(+:sum)& : le
+  compilateur transforme le programme pour introduire une variable
+  locale afin de minimiser le temps passé en section critique.
+\end{enumerate}
+
+
+\section{Examen 2017 : Calculs de moyennes en OpenMP}
+
+
+
+\newcounter{numexercice}
+\newenvironment{question}
+{\addtocounter{numexercice}{1}\noindent{\bf Question \thenumexercice \ }} {\medskip}
+
+Disposant d'une machine de 100 cœurs, on cherche à optimiser le temps
+d'exécution d'un programme calculant les moyennes de séquences de
+nombres flottants. Les nombres sont stockés dans un tableau
+\verb#elements# et les séquences sont données par un tableau de
+structures, structures dont les champs \verb#debut# et \verb#fin#
+désignent des indices du tableau \verb#elements#. On pourra supposer
+les séquences disjointes.  Voici les structures
+de données :
+
+\begin{lstlisting}
+struct { int debut; int fin; } sequences[N]; 
+double elements[M]; 
+double moyennes[N]; 
+\end{lstlisting}
+
+Pour fixer les idées, voici un exemple de valeurs cohérentes :
+
+ \begin{lstlisting}
+  sequences[] = {{0,3}, {5,6}}
+  elements[] = {0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 10.0, 9.0}
+  moyennes[] = {1.5, 7.5}
+\end{lstlisting} 
+
+
+\begin{question}
+  Proposez un code OpenMP optimisé du calcul des moyennes des
+  séquences pour le cas où le nombre de séquences est bien supérieur
+  au nombre de threads (e.g.  \verb#N = 10 000 000)#). On pourra
+  supposer toutes les séquences sont à peu près de la même longueur et
+  assez petites (eg. de longueur 4).
+\end{question}
+
+\begin{question}
+  Proposez un code OpenMP optimisé pour le cas où le nombre de
+  séquences est bien plus petit que le nombre de threads (e.g.
+  4 séquences de longueur 10 000 000).
+\end{question}
+
+
+\begin{question}
+  On appelle efficacité parallèle d'un programme le rapport :
+ $$\frac {\mbox{Temps exécution séquentielle}} {\mbox{Temps exécution
+     parallèle} \times\mbox{nombre de cœurs}}$$
+En supposant disposer de 100 cœurs, estimer l'efficacité parallèle 
+obtenue (dans le pire cas)  par chaque code dans les configurations suivantes:
+\begin{enumerate}
+\item 10 000 000 séquences de longueur 4 ;
+\item 4 séquences de longueur 10 000 000 ;
+\item 4 séquences de longueur 10 000 000 perdues au milieu de 10 000
+  000 de séquences de longueur 4.
+\end{enumerate}
+\end{question}
+
+\begin{question}
+  On cherche à obtenir un programme parallèle efficace dans les
+  trois cas précédents. On propose d'enchainer des versions
+  modifiées du premier code puis du second code tout en évitant de parcourir
+  plus d'une fois le tableau des séquences.
+    Pour cela on définit une constante \verb#SEUIL# et un tableau
+  \verb#int gros_cas[N]# qui va servir à mémoriser les indices des
+  séquences de longueur supérieure à \verb#SEUIL#. 
+
+Proposez un code OpenMP basé sur une version modifiée du
+premier code afin de traiter les petites séquences et mémoriser
+les indices des longues séquences dans le tableau \verb#gros_cas[]# pour enchainer sur le second code
+qui ne traitera que les longues séquences, celles
+mémorisées dans \verb#gros_cas[]#.
+\end{question}
+
+
+
+\end{document}
+

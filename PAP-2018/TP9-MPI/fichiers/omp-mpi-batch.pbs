@@ -1,0 +1,23 @@
+#PBS -N KOLLOMP
+#PBS -M VOTREMAIL 
+#envoi un mail au début (b=begin), à la fin (e=end) et en cas d'arrêt brutal (a=abort) du batch 
+##PBS -m bea 
+# preciser le temps en heures, minutes, secondes
+#PBS -l walltime=00:01:30 
+# preciser la memoire en megabytes ou gigabytes
+##PBS -l mem=1gb 
+# nombre de noeuds et de coeurs
+#PBS -l nodes=4:ppn=8  
+# repertoire de travail dans lequel on soumet le batch
+cd fichiers-mpi
+#
+#
+
+module add compiler/intel/stable
+module add mpi/intel/stable
+
+uniq $PBS_NODEFILE > machines
+export OMP_NUM_THREADS=$PBS_NUM_PPN
+
+mpirun -np $PBS_NUM_NODES -machinefile machines ./coll-mul-mat
+#
