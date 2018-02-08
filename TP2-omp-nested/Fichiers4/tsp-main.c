@@ -142,8 +142,8 @@ inline int present (int city, int hops, int mask)
 
 void tsp (int hops, int len, int *path, int mask)
 {
-  //if (len + distance[0][path[hops-1]]>= minimum)
-    //return;
+  if (len + distance[0][path[hops-1]]>= minimum)
+    return;
  int i ;
  int me, dist ;
  if (hops == NrTowns)
@@ -162,29 +162,34 @@ void tsp (int hops, int len, int *path, int mask)
  else
    {
      me = path [hops-1] ;
-     if(hops <= grain){
+     if(hops <= grain){// parallel
+      printf("parallel\n");
      #pragma omp parallel for if (hops <= grain) num_threads(NrTowns-hops) schedule(dynamic)
      //#pragma omp parallel for if (grain)
      for (i=0; i < NrTowns; i++)
        {
+        
 	 if (!present (i, hops, mask))
 	   {
-       //#pragma omp task firstprivate(i)
-       //omp_set_nested(1);
-       int mypath[NrTowns];
+       omp_set_nested(1);
+       //int mypath[NrTowns];
+       int* mypath = malloc(sizeof(int)*NrTowns);
        memcpy(mypath,path,hops*sizeof(int));
-	     
+	     #pragma omp task firstprivate(i,len,hops,mask,mypath)
        mypath [hops] = i ;
 	     dist = distance[me][i] ;
-	     tsp (hops+1, len+dist, mypath,  mask | (1 << i)) ;
+	     //par_tsp();
+       free(mypath);
+       tsp (hops+1, len+dist, mypath,  mask | (1 << i)) ;
 	   }
        }
-     }else{
+       #pragma omp taskwait
+     }else{// séquentiel
+      //printf("seq\n");
      for (i=0; i < NrTowns; i++)
        {
    if (!present (i, hops, mask))
      {
-       #pragma omp task firstprivate(i)
        omp_set_nested(1);
        int mypath[NrTowns];
        memcpy(mypath,path,hops*sizeof(int));
@@ -192,7 +197,6 @@ void tsp (int hops, int len, int *path, int mask)
        mypath [hops] = i ;
        dist = distance[me][i] ;
        tsp (hops+1, len+dist, mypath,  mask | (1 << i));
-       #pragma omp taskwait
      }
        }
      }
@@ -215,8 +219,8 @@ void par_tsp ()
           chemin[2] = j;
           chemin[3] = k;
           int dist = distance[0][i] + distance[i][j] + distance[j][k];
-          //if (dist + distance[0][chemin[4-1]]>= minimum)
-            //continue;
+          if (dist + distance[0][chemin[4-1]]>= minimum)
+            continue;
           tsp (4, dist, chemin,1) ;
         }
 }
@@ -253,14 +257,16 @@ int main (int argc, char **argv)
    
    #pragma omp parallel
    #pragma omp single
-   tsp(1,0,path,1);
-   //par_tsp();
+   //tsp(1,0,path,1);
+   par_tsp();
 
    gettimeofday(&t2,NULL);
    
    temps = TIME_DIFF(t1,t2);
 
    printf("time = %ld.%03ldms\n", temps/1000, temps%1000);
+
+   fprintf(stderr, "%ld.%03ld\n", temps/1000, temps%1000);
 
    return 0 ;
 }
