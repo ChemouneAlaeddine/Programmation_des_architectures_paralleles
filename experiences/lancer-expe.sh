@@ -5,7 +5,7 @@ ITE=$(seq 10) # nombre de mesures
   
 THREADS=$(seq 2 2 24) # nombre de threads
 
-PARAM="./tsp-main 15 1234 " # parametres commun à toutes les executions 
+PARAM="./prog -l images/shibuya.png -k scrollup -n -i 500 -v" # parametres commun à toutes les executions 
 
 execute (){
 EXE="$PARAM $*"
