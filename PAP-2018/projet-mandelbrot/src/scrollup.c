@@ -29,8 +29,9 @@ unsigned scrollup_compute_seq (unsigned nb_iter)
 
 unsigned scrollup_compute_omp (unsigned nb_iter)
 {
+  #pragma omp parallel
   for (unsigned it = 1; it <= nb_iter; it ++) {
-  	#pragma omp parallel for
+  	#pragma omp for collapse(2)
     for (int i = 0; i < DIM; i++)
       for (int j = 0; j < DIM; j++)
    	next_img (i, j) = (i == DIM - 1) ? cur_img (0, j) : cur_img (i + 1, j);
@@ -43,8 +44,9 @@ unsigned scrollup_compute_omp (unsigned nb_iter)
 
 unsigned scrollup_compute_omp_d (unsigned nb_iter)
 {
+  #pragma omp parallel
   for (unsigned it = 1; it <= nb_iter; it ++) {
-  	#pragma omp parallel for schedule(dynamic)
+  	#pragma omp for schedule(dynamic)
     for (int i = 0; i < DIM; i++)
       for (int j = 0; j < DIM; j++)
    	next_img (i, j) = (i == DIM - 1) ? cur_img (0, j) : cur_img (i + 1, j);

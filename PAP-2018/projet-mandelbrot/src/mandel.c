@@ -134,6 +134,34 @@ unsigned mandel_compute_seq (unsigned nb_iter)
   return 0;
 }
 
+unsigned omps (unsigned nb_iter)
+{
+  for (unsigned it = 1; it <= nb_iter; it ++) {
+    #pragma omp parallel for schedule(static)
+    for (int i = 0; i < DIM; i++)
+      for (int j = 0; j < DIM; j++)
+  cur_img (i, j) = iteration_to_color (compute_one_pixel (i, j));
+
+    zoom ();
+  }
+
+  return 0;
+}
+
+unsigned ompd (unsigned nb_iter)
+{
+  for (unsigned it = 1; it <= nb_iter; it ++) {
+    #pragma omp parallel for schedule(dynamic)
+    for (int i = 0; i < DIM; i++)
+      for (int j = 0; j < DIM; j++)
+  cur_img (i, j) = iteration_to_color (compute_one_pixel (i, j));
+
+    zoom ();
+  }
+
+  return 0;
+}
+
 ///////////////////////////// Version séquentielle tuilée (tiled)
 
 #define GRAIN 8
@@ -168,6 +196,48 @@ unsigned mandel_compute_tiled (unsigned nb_iter)
 		       j * tranche /* j debut */,
 		       (i + 1) * tranche - 1 /* i fin */,
 		       (j + 1) * tranche - 1 /* j fin */);
+
+    zoom ();
+  }
+
+  return 0;
+}
+
+unsigned omptiled (unsigned nb_iter)
+{
+  tranche = DIM / GRAIN;
+  
+  for (unsigned it = 1; it <= nb_iter; it ++) {
+    #pragma omp parallel for collapse(2) schedule(dynamic)
+    // On itére sur les coordonnées des tuiles
+    for (int i=0; i < GRAIN; i++)
+      for (int j=0; j < GRAIN; j++)
+  traiter_tuile (i * tranche /* i debut */,
+           j * tranche /* j debut */,
+           (i + 1) * tranche - 1 /* i fin */,
+           (j + 1) * tranche - 1 /* j fin */);
+
+    zoom ();
+  }
+
+  return 0;
+}
+
+unsigned omptask (unsigned nb_iter)
+{
+  tranche = DIM / GRAIN;
+  
+  for (unsigned it = 1; it <= nb_iter; it ++) {
+    #pragma omp parallel for collapse(2) schedule(dynamic)
+    // On itére sur les coordonnées des tuiles
+    for (int i=0; i < GRAIN; i++)
+      for (int j=0; j < GRAIN; j++)
+        //#pragma omp single
+        #pragma omp task
+  traiter_tuile (i * tranche /* i debut */,
+           j * tranche /* j debut */,
+           (i + 1) * tranche - 1 /* i fin */,
+           (j + 1) * tranche - 1 /* j fin */);
 
     zoom ();
   }
