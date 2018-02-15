@@ -1,0 +1,164 @@
+\documentclass[11pt]{article}
+\usepackage[french]{babel}
+\usepackage[latin9]{inputenc}
+\usepackage[T1]{fontenc}
+%\usepackage{palatino}
+\usepackage{fullpage}
+\usepackage{url}
+\title{Efficacité d'un programme séquentiel\vspace{-1cm}}
+\date{}
+
+\begin{document}
+\maketitle
+
+%NOTE: Penser à demander aux admins d'enlever cpufreqd / powernowd des
+%machines de la salle !
+
+L'objectif est de mettre en ½uvre des techniques d'optimisation pour
+les programmes séquentiels.
+
+%Copiez le répertoire \verb+~pwacreni/PMG/TP1+ chez vous. 
+
+% \section{Mesure du temps}
+
+% Tout d'abord, essayons différentes façons de mesurer le temps.  Compilez
+% le programme \verb+temps+ en lançant \verb+make temps+.  Il existe en
+% gros trois méthodes, de la plus grossière à la plus fine:
+
+% \begin{itemize}
+% \item La commande \verb+time+: lancez \verb+time ./temps+: quelque chose
+% comme 
+% \begin{verbatim}
+% real    0m3.628s
+% user    0m3.616s
+% sys     0m0.004s
+% \end{verbatim}
+% s'affiche: vous obtenez ainsi le temps passé dans le programme lui-même
+% (ici $3.616$), le temps passé en mode noyau (ici $0,004$) et le temps
+% final.
+% \item La fonction \verb+gettimeofday+: décommentez l'affichage de
+% \verb+TIME_DIFF()+ et relancez le programme. Notez que la précision est
+% bien meilleure.
+% \item Le compteur de cycles du processeur: décommentez l'affichage de
+%   \verb+TICK_DIFF()+ et relancez le programme. On ne peut avoir plus
+%   précis comme mesure ! Ce compteur n'est cependant pas forcément
+%   synchronisé entre les différents c½urs et processeurs.
+%  \end{itemize}
+
+% Calculez expérimentalement la fréquence du c½ur utilisé pour
+% l'exécution du programme. Comparez ce résultat à la fréquence du
+% processeur écrite dans le fichier \verb+/proc/cpuinfo+\footnote{La fréquence
+% y figure deux fois : l'une en commentaire du modèle de cpu, l'autre en
+% tant que fréquence instantanée.}. 
+% Notez que la  fréquence du processeur peut éventuellement changer dynamiquement.
+%  % ./temps & cat /proc/cpuinfo puis rechercher les coeurs actifs
+
+\section{Fusion de boucle}
+
+Observez le programme \texttt{boucles.c}. Quelle optimisation
+auriez-vous naturellement tendance à faire ? Le gain obtenu est-il
+décevant, correct, ou plus que satisfaisant ? Comment l'expliquer ?
+
+Reproduire l'expérience en ajoutant une troisième puis une quatrième
+boucle, obtenez-vous une accélération encore meilleure ? Pourquoi ?
+
+% 1 2 3 => meme temps 
+% grosse diff avec 4 
+% le pipeline est sous utilisé pour 1, 2 et 4 
+% bien utilisé pour 3.
+
+\section{Déroulement de boucle}
+
+Tout d'abord, observons le coût d'une boucle: le programme
+\texttt{deroulement.c} effectue un calcul tout bête au sein d'une
+boucle qui a un nombre d'itérations connu. Tel quel, chaque mesure
+prend quelques secondes.
+
+\emph{Déroulez} la boucle, c'est-à-dire par exemple définir \texttt{D}
+à 2 pour faire 2 fois moins d'itérations, mais en répliquant le
+contenu de la boucle pour lui faire faire deux fois le calcul par
+itération. Attention aux indices de tableau (\emph{vérifiez} que le
+résultat obtenu est bien le même). Essayez en déroulant 2 itérations,
+4 et 8.
+
+Essayez d'optimiser le c½ur de la boucle en utilisant des variables
+supplémentaires ou ne faisant qu'une seule affectation par tour.
+
+Est-il intéressant de dérouler indéfiniment ? Quelle combinaison
+d'options de gcc permet de dérouler les boucles ?
+
+
+
+
+
+\section{Multiplication et somme de matrices}
+
+Les programmes \verb+mul_mat.c+ et \verb+som_mat.c+ effectuent sommes
+et multiplications de matrices de façon très basique. Cette façon
+de faire est loin d'être optimale. 
+
+\begin{enumerate}
+
+\item Lancer plusieurs fois le programme  \verb+som_mat+ pour vérifier
+  que les procédures \texttt{somMat} et \texttt{somMat2} ont un temps
+  d'exécution similaire. 
+
+\item Modifier la procédure  \texttt{somMat2} en permutant l'ordre des
+  boucles sur i et sur j. Mesurer l'accélération obtenue.
+
+\textit{Cette accélération est due à une meilleure exploitation de la
+  mémoire cache qui, grossièrement, charge dans sa mémoire, non
+  seulement la valeur de la case mémoire demandée par le processeur,
+  mais aussi celles de ses cases voisines.}
+
+\item A votre avis, quelle case de \verb#t[i][j+1]# ou de
+  \verb#t[i+1][j]# est rangée en mémoire à coté de \verb#t[i][j]# ?
+  Est-ce vraiment toujours le cas ?
+
+\item Recommencer l'expérience en faisant varier la taille  de la
+  matrice (prendre N = 1024, N = 256, N = 64). Expliquer les résultats
+  obtenus en vous aidant de la commande lstopo pour connaitre la
+  taille des caches.
+\end{enumerate} 
+
+
+On s'intéresse maintenant au produit de matrices. 
+
+\begin{enumerate}
+\item Modifier le code de \texttt{prodMat2} afin d'utiliser plus
+  efficacement le cache du processeur. Le gain obtenu est-il décevant,
+  correct ou plus que satisfaisant ?
+
+\item Il est probable que quelques défauts de cache évitables
+  subsistent dans votre code. Les repérez-vous ? Quelle
+  permutation des boucles sur i, j, k induit le plus petit nombre de
+  défauts de cache ? Modifier votre code en conséquence.  
+
+\item Lorsque N est assez grand il est probable quelques défauts de cache évitables
+  subsistent dans votre code. Supposons que le cache fasse 8 Mo pour
+  quelle valeur de N apparaissent ces défauts de cache ?
+\end{enumerate}
+
+
+\section{Comparaison d'images  - juin 2011}
+
+On dispose d'un film composé d'un millier d'images codées sur 32 bits au format $1280×1024$, chaque image pèse donc 5Mo. Pour chaque couple d'images consécutives on cherche à calculer le nombre de pixels différents. Les T images sont présentes dans un tableau déclaré pixel \verb|film[T][1024][1280]| et le résultat dans un tableau noté \verb|long int diff[T-1]| (\verb|diff[i]| contiendra le nombre de pixels différents entre les images i et i+1). Voici un exemple de code calculant ce tableau.
+
+\begin{verbatim}
+  for(int n=0; n < T-1; n++)
+    for(int i=0; i < 1024; i++)
+      for(int j=0; j < 1280; j++)
+        if (film[n][i][j] != film[n+1][i][j])
+          diff[n]++;
+\end{verbatim}
+
+\begin{enumerate}
+\item Comment éviter le test ?
+\item  Admettons que l'on ait trois images consécutives à traiter sur un seul c½ur. Quels sont les défauts de cache regrettables (et en fait tous évitables)  générés par l'exécution du programme ci-dessus ? Les tailles de cache sont 32ko, 256ko et 8Mo et la taille d'une image est de 5Mo. 
+\item  Comment réorganiser le calcul afin de minimiser le nombre de défauts de cache  ? Il s'agit de décrire un schéma de calcul favorisant la localité des données en assurant que tout pixel ne soit chargé en cache qu'une seule fois en cache L1. 
+\item Ajouter au fichier \verb|film.c| des fonctions optimisées pour
+  calculer le tableau diff afin de comparer les différentes optimisations.
+\item Comparer l'effet de quelques optimisations de compilation.
+\item Comment optimiser les défauts de TLB ?
+\end{enumerate}
+\end{document}
