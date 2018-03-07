@@ -105,19 +105,20 @@ void sable_draw_DIM(void){
 
 
 ///////////////////////////// Version séquentielle simple (seq)
-
+//#pragma GCC push_options
+//#pragma GCC optimize ("unroll-all-loops")
 static inline void compute_new_state (int y, int x)
 {
-  if (table(y,x) >= 4)
-    {
+  //if (table(y,x) >= 4)
+    //{
       unsigned long int div4 = table(y,x) / 4;
       table(y,x-1)+=div4;
+      table(y,x)%=4;
       table(y,x+1)+=div4;
       table(y-1,x)+=div4;
       table(y+1,x)+=div4;
-      table(y,x)%=4;
       changement = 1;
-    }  
+    //}  
 }
 
 static void traiter_tuile (int i_d, int j_d, int i_f, int j_f)
@@ -126,16 +127,16 @@ static void traiter_tuile (int i_d, int j_d, int i_f, int j_f)
   
   for (int i = i_d; i <= i_f; i++)
     for (int j = j_d; j <= j_f; j++)
-      compute_new_state (i, j);
+      if (table(i,j) >= 4)
+        compute_new_state (i, j);
 }
-
+//#pragma GCC pop_options
 
 // Renvoie le nombre d'itérations effectuées avant stabilisation, ou 0
 unsigned sable_compute_seq (unsigned nb_iter)
 {
- 
+  changement = 0;
   for (unsigned it = 1; it <= nb_iter; it ++) {
-    changement = 0;
     // On traite toute l'image en un coup (oui, c'est une grosse tuile)
     traiter_tuile (1, 1, DIM - 2, DIM - 2);
     if(changement == 0)
