@@ -121,3 +121,27 @@ unsigned transpose_compute_omp_tiled (unsigned nb_iter)
   
   return 0;
 }
+
+unsigned transpose_compute_omp_task (unsigned nb_iter)
+{
+  tranche = DIM / GRAIN;
+  for (unsigned it = 1; it <= nb_iter; it ++) {
+    // On itére sur les coordonnées des tuiles
+    #pragma omp parallel
+    #pragma omp single
+    {
+    for (int i=0; i < GRAIN; i++)
+      for (int j=0; j < GRAIN; j++){
+        #pragma omp task firstprivate(i,j)
+  traiter_tuile (i * tranche /* i debut */,
+           j * tranche /* j debut */,
+           (i + 1) * tranche - 1 /* i fin */,
+           (j + 1) * tranche - 1 /* j fin */);
+      }
+    #pragma omp taskwait
+    swap_images ();
+  }
+}
+  
+  return 0;
+}
