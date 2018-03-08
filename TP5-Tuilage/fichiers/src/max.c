@@ -17,15 +17,32 @@
 static int monter_max_seq (int i_d, int j_d, int i_f, int j_f)
 {
   int changement = 0;
-
+  //#pragma omp parallel for
   for (int i = i_d; i >= i_f; i--)
     for (int j = j_d; j >= j_f; j--)
       if (cur_img (i,j)) {
-	Uint32 m = MAX (cur_img (i+1,j), cur_img (i,j+1));
-	if (m > cur_img (i,j)) {
-	  changement = 1;
-	  cur_img (i,j) = m;
-	}
+  Uint32 m = MAX (cur_img (i+1,j), cur_img (i,j+1));
+  if (m > cur_img (i,j)) {
+    changement = 1;
+    cur_img (i,j) = m;
+  }
+      }
+
+  return changement;
+}
+
+static int monter_max_omp (int i_d, int j_d, int i_f, int j_f)
+{
+  int changement = 0;
+  #pragma omp parallel for
+  for (int i = i_d; i >= i_f; i--)
+    for (int j = j_d; j >= j_f; j--)
+      if (cur_img (i,j)) {
+  Uint32 m = MAX (cur_img (i+1,j), cur_img (i,j+1));
+  if (m > cur_img (i,j)) {
+    changement = 1;
+    cur_img (i,j) = m;
+  }
       }
 
   return changement;
@@ -38,11 +55,28 @@ static int descendre_max_seq (int i_d, int j_d, int i_f, int j_f)
   for (int i = i_d; i <= i_f; i++)
     for (int j = j_d; j <= j_f; j++)
       if (cur_img (i,j)) {
-	Uint32 m = MAX (cur_img (i-1,j), cur_img (i,j-1));
-	if (m > cur_img (i,j)) {   
-	  changement = 1;
-	  cur_img (i,j) = m;
-	}
+  Uint32 m = MAX (cur_img (i-1,j), cur_img (i,j-1));
+  if (m > cur_img (i,j)) {   
+    changement = 1;
+    cur_img (i,j) = m;
+  }
+      }
+
+  return changement;
+}
+
+static int descendre_max_omp (int i_d, int j_d, int i_f, int j_f)
+{
+  int changement = 0;
+  #pragma omp parallel for
+  for (int i = i_d; i <= i_f; i++)
+    for (int j = j_d; j <= j_f; j++)
+      if (cur_img (i,j)) {
+  Uint32 m = MAX (cur_img (i-1,j), cur_img (i,j-1));
+  if (m > cur_img (i,j)) {   
+    changement = 1;
+    cur_img (i,j) = m;
+  }
       }
 
   return changement;
@@ -55,6 +89,17 @@ unsigned max_compute_seq (unsigned nb_iter)
   for (unsigned it = 1; it <= nb_iter; it ++) {
 
     if ((descendre_max_seq (1, 1, DIM-1, DIM-1) | monter_max_seq (DIM-2, DIM-2, 0, 0)) == 0)
+      return it;
+  }
+
+  return 0;
+}
+
+unsigned max_compute_omp (unsigned nb_iter)
+{
+  for (unsigned it = 1; it <= nb_iter; it ++) {
+
+    if ((descendre_max_omp (1, 1, DIM-1, DIM-1) | monter_max_omp (DIM-2, DIM-2, 0, 0)) == 0)
       return it;
   }
 
@@ -104,24 +149,34 @@ static void lancer_monte (int i, int j)
 int max_compute_tiled (unsigned nb_iter)
 {    
   tranche = DIM / GRAIN;
-
-  for (unsigned it = 1; it <= nb_iter; it ++) {
-
+  int celluled[GRAIN][GRAIN+1];
+  cont = 1;
+  unsigned it;
+  #pragma omp parallel
+  #pragma omp single
+  for (it = 1; it <= nb_iter && cont; it ++) {
     cont = 0;
+    for (int i=0; i < GRAIN; i++)
+      for (int j=0; j < GRAIN; j++){
+        celluled[i][j] = 1;
+        #pragma omp task firstprivate(i,j) depend(in:celluled[i-1][j],celluled[i][j-1]) depend(out:celluled[i][j])
+  lancer_descente (i, j);
+      }
+        #pragma omp taskwait
 
     for (int i=0; i < GRAIN; i++)
-      for (int j=0; j < GRAIN; j++)
-	lancer_descente (i, j);
+      for (int j=0; j < GRAIN; j++){
+        celluled[GRAIN-i-1][GRAIN-j-1] = 1;
+        #pragma omp task firstprivate(i,j) depend(in:celluled[GRAIN-i][GRAIN-j-1],celluled[GRAIN-i-1][GRAIN-j]) depend(out:celluled[GRAIN-i-1][GRAIN-j-1])
+  lancer_monte (GRAIN-i-1, GRAIN-j-1);
+      }
+        #pragma omp taskwait
 
-    for (int i=0; i < GRAIN; i++)
-      for (int j=0; j < GRAIN; j++)
-	lancer_monte (GRAIN-i-1, GRAIN-j-1);
-
-    if (!cont)
-      return it;
+    //if (!cont)
+      //return it;
   }
   
-  return 0;
+  return cont == 0 ? it : 0;
 }
 
 
