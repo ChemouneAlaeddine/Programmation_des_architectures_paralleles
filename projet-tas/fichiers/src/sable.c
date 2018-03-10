@@ -110,25 +110,54 @@ void sable_draw_DIM(void){
 static inline void compute_new_state (int y, int x)
 {
   //if (table(y,x) >= 4)
-    //{
-      unsigned long int div4 = table(y,x) / 4;
-      table(y,x-1)+=div4;
-      table(y,x)%=4;
-      table(y,x+1)+=div4;
-      table(y-1,x)+=div4;
-      table(y+1,x)+=div4;
-      changement = 1;
-    //}  
+  //{
+    unsigned long int div4 = table(y,x) / 4;
+    table(y,x-1)+=div4;
+    table(y,x)%=4;
+    table(y,x+1)+=div4;
+    table(y-1,x)+=div4;
+    table(y+1,x)+=div4;
+    changement = 1;
+  //}
+  /*if(x>1)
+    compute_new_state(x-1,y);
+  if(y>1)
+    compute_new_state(x,y-1);
+  if(x<DIM-2)
+    compute_new_state(x+1,y);
+  if(y<DIM-2)
+    compute_new_state(x,y+1);*/
 }
 
 static void traiter_tuile (int i_d, int j_d, int i_f, int j_f)
 {
+  int N = 4;
+
   PRINT_DEBUG ('c', "tuile [%d-%d][%d-%d] traitée\n", i_d, i_f, j_d, j_f);
   
   for (int i = i_d; i <= i_f; i++)
-    for (int j = j_d; j <= j_f; j++)
-      if (table(i,j) >= 4)
-        compute_new_state (i, j);
+    for (int j = j_d; j <= j_f; j+=N){
+      for (int k = 0; k < N; k++)
+        if (table(i,j+k) >= 4)
+          compute_new_state (i,j+k);        
+
+      /*if (table(i,j) >= 4)
+        compute_new_state (i,j);
+      if (table(i,j+1) >= 4)
+        compute_new_state (i,j+1);
+      if (table(i,j+2) >= 4)
+        compute_new_state (i,j+2);
+      if (table(i,j+3) >= 4)
+        compute_new_state (i,j+3);
+      if (table(i,j+4) >= 4)
+        compute_new_state (i,j+4);
+      if (table(i,j+5) >= 4)
+        compute_new_state (i,j+5);
+      if (table(i,j+6) >= 4)
+        compute_new_state (i,j+6);
+      if (table(i,j+7) >= 4)
+        compute_new_state (i,j+7);*/
+    }
 }
 //#pragma GCC pop_options
 
