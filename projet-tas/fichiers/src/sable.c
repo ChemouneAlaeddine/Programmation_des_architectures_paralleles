@@ -107,62 +107,52 @@ void sable_draw_DIM(void){
 ///////////////////////////// Version séquentielle simple (seq)
 //#pragma GCC push_options
 //#pragma GCC optimize ("unroll-all-loops")
+
 static inline void compute_new_state (int y, int x)
 {
-  //if (table(y,x) >= 4)
-  //{
+  //if (table(y,x) >= 4){
     unsigned long int div4 = table(y,x) / 4;
     table(y,x-1)+=div4;
-    table(y,x)%=4;
     table(y,x+1)+=div4;
     table(y-1,x)+=div4;
     table(y+1,x)+=div4;
+    table(y,x)%=4;
     changement = 1;
   //}
-  /*if(x>1)
-    compute_new_state(x-1,y);
-  if(y>1)
-    compute_new_state(x,y-1);
-  if(x<DIM-2)
-    compute_new_state(x+1,y);
-  if(y<DIM-2)
-    compute_new_state(x,y+1);*/
 }
 
 static void traiter_tuile (int i_d, int j_d, int i_f, int j_f)
 {
-  int N = 4;
-
   PRINT_DEBUG ('c', "tuile [%d-%d][%d-%d] traitée\n", i_d, i_f, j_d, j_f);
   
   for (int i = i_d; i <= i_f; i++)
-    for (int j = j_d; j <= j_f; j+=N){
-      for (int k = 0; k < N; k++)
-        if (table(i,j+k) >= 4)
-          compute_new_state (i,j+k);        
-
-      /*if (table(i,j) >= 4)
+    for (int j = j_d; j <= j_f; j++){
+      if (table(i,j) >= 4)
         compute_new_state (i,j);
-      if (table(i,j+1) >= 4)
-        compute_new_state (i,j+1);
-      if (table(i,j+2) >= 4)
-        compute_new_state (i,j+2);
-      if (table(i,j+3) >= 4)
-        compute_new_state (i,j+3);
-      if (table(i,j+4) >= 4)
-        compute_new_state (i,j+4);
-      if (table(i,j+5) >= 4)
-        compute_new_state (i,j+5);
-      if (table(i,j+6) >= 4)
-        compute_new_state (i,j+6);
-      if (table(i,j+7) >= 4)
-        compute_new_state (i,j+7);*/
     }
 }
-//#pragma GCC pop_options
+
+ static void traiter_tuile_v1 (int i_d, int j_d, int i_f, int j_f)
+ {
+   PRINT_DEBUG ('c', "tuile [%d-%d][%d-%d] traitée\n", i_d, i_f, j_d, j_f);
+ 
+   int rest = (j_f - j_d + 1) % 2;
+ 
+   for (int i = i_d; i <= i_f; i++){
+     for (int j = j_d; j <= (j_f - rest); j+=2){
+      if (table(i,j) >= 4)
+       compute_new_state (i, j);
+      if (table(i,j+1) >= 4)
+       compute_new_state(i,j+1);
+    }
+    for(int j = (j_f - rest); j <= j_f; ++j)
+      if (table(i,j) >= 4) 
+        compute_new_state(i,j);
+   }
+ }
 
 // Renvoie le nombre d'itérations effectuées avant stabilisation, ou 0
-unsigned sable_compute_seq (unsigned nb_iter)
+ unsigned sable_compute_seq (unsigned nb_iter)
 {
   changement = 0;
   for (unsigned it = 1; it <= nb_iter; it ++) {
@@ -173,6 +163,81 @@ unsigned sable_compute_seq (unsigned nb_iter)
   }
   return 0;
 }
+
+unsigned sable_compute_seqv1 (unsigned nb_iter)
+{
+  changement = 0;
+  for (unsigned it = 1; it <= nb_iter; it ++) {
+    // On traite toute l'image en un coup (oui, c'est une grosse tuile)
+    traiter_tuile_v1 (1, 1, DIM - 2, DIM - 2);
+    if(changement == 0)
+      return it;
+  }
+  return 0;
+}
+///////////////////////////// Version parallèl
+
+static void traiter_tuile_omp (int i_d, int j_d, int i_f, int j_f)
+{
+  int mat[DIM][DIM+1];
+
+  PRINT_DEBUG ('c', "tuile [%d-%d][%d-%d] traitée\n", i_d, i_f, j_d, j_f);
+  #pragma omp parallel
+  #pragma omp single
+  {
+    for (int i = i_d; i <= i_f; i++)
+        for (int j = j_d; j <= j_f; j++){
+            if (table(i,j) >= 4){
+              #pragma omp task firstprivate(i,j) depend(in:mat[i-1][j],mat[i][j-1])  depend(out:mat[i][j])
+              compute_new_state(i,j);
+            }
+          }
+  }
+}
+
+static void traiter_tuile_omp_tuile (int i_d, int j_d, int i_f, int j_f)
+{
+  int M = 8;
+  int mat[DIM/M][DIM/M];
+
+  int rest = (DIM-2)%M;
+  PRINT_DEBUG ('c', "tuile [%d-%d][%d-%d] traitée\n", i_d, i_f, j_d, j_f);
+  #pragma omp parallel //for schedule(dynamic)
+  #pragma omp single
+  for(int I = i_d; I <= i_f-rest; I+=M)
+    for(int J = j_d; J <= j_f-rest; J+=M)
+      //#pragma omp task firstprivate(I,J) depend(in:mat[I-1][J],mat[I][J-1]) depend(out:mat[I][J])
+      for (int i = I; i < I+M && i <= i_f; i++)
+        for (int j = J; j < J+M && j <= j_f; j++){
+          if (table(i,j) >= 4){
+            #pragma omp task firstprivate(i,j) depend(in:mat[I-1][J],mat[I][J-1]) depend(out:mat[I][J])//depend(in:mat[i-1][j],mat[i][j-1]) depend(out:mat[i][j])
+            compute_new_state(i,j);
+          }
+        }
+  if(rest > 0){
+    for (int j = j_d; j <= j_f; j++)
+      for (int i = i_f-rest+1; i <= i_f; i++){
+        if (table(j,i) >= 4)
+          compute_new_state(j,i);
+        if (table(i,j) >= 4)
+          compute_new_state(i,j);
+      }
+  }
+}
+
+
+unsigned sable_compute_omp (unsigned nb_iter)
+{
+  changement = 0;
+  for (unsigned it = 1; it <= nb_iter; it ++) {
+    // On traite toute l'image en un coup (oui, c'est une grosse tuile)
+    traiter_tuile_omp_tuile (1, 1, DIM - 2, DIM - 2);
+    if(changement == 0)
+      return it;
+  }
+  return 0;
+}
+
 
 ///////////////////////////// Version séquentielle tuilée (tiled)
 
