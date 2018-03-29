@@ -1,0 +1,1 @@
+/usr/bin/cc     CMakeFiles/atoms.dir/src/main.c.o CMakeFiles/atoms.dir/src/tools.c.o  -o ../bin/atoms -Wl,-rpath,/net/cremi/achemoune/espaces/travail/Programmation_des_architectures_paralleles/TP7/fichiers/build/libsotl -rdynamic libsotl/libsotl.so -lOpenCL -lm -lgomp -lGLU -lGL -lglut -lXmu -lXi 

@@ -1,0 +1,14 @@
+/net/cremi/achemoune/espaces/travail/Programmation_des_architectures_paralleles/TP7/fichiers/build/CMakeFiles/install/strip.dir
+/net/cremi/achemoune/espaces/travail/Programmation_des_architectures_paralleles/TP7/fichiers/build/CMakeFiles/install/local.dir
+/net/cremi/achemoune/espaces/travail/Programmation_des_architectures_paralleles/TP7/fichiers/build/CMakeFiles/atoms.dir
+/net/cremi/achemoune/espaces/travail/Programmation_des_architectures_paralleles/TP7/fichiers/build/CMakeFiles/edit_cache.dir
+/net/cremi/achemoune/espaces/travail/Programmation_des_architectures_paralleles/TP7/fichiers/build/CMakeFiles/rebuild_cache.dir
+/net/cremi/achemoune/espaces/travail/Programmation_des_architectures_paralleles/TP7/fichiers/build/CMakeFiles/install.dir
+/net/cremi/achemoune/espaces/travail/Programmation_des_architectures_paralleles/TP7/fichiers/build/CMakeFiles/list_install_components.dir
+/net/cremi/achemoune/espaces/travail/Programmation_des_architectures_paralleles/TP7/fichiers/build/libsotl/CMakeFiles/install/strip.dir
+/net/cremi/achemoune/espaces/travail/Programmation_des_architectures_paralleles/TP7/fichiers/build/libsotl/CMakeFiles/install/local.dir
+/net/cremi/achemoune/espaces/travail/Programmation_des_architectures_paralleles/TP7/fichiers/build/libsotl/CMakeFiles/sotl.dir
+/net/cremi/achemoune/espaces/travail/Programmation_des_architectures_paralleles/TP7/fichiers/build/libsotl/CMakeFiles/install.dir
+/net/cremi/achemoune/espaces/travail/Programmation_des_architectures_paralleles/TP7/fichiers/build/libsotl/CMakeFiles/list_install_components.dir
+/net/cremi/achemoune/espaces/travail/Programmation_des_architectures_paralleles/TP7/fichiers/build/libsotl/CMakeFiles/edit_cache.dir
+/net/cremi/achemoune/espaces/travail/Programmation_des_architectures_paralleles/TP7/fichiers/build/libsotl/CMakeFiles/rebuild_cache.dir
