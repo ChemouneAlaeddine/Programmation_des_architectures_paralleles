@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <sys/time.h>
 
-#define N 1024
+#define N 256
 
 #define TIME_DIFF(t1, t2) \
   ((double)((t2.tv_sec - t1.tv_sec) * 1000000 + (t2.tv_usec - t1.tv_usec)))
@@ -13,11 +13,11 @@ char c[N][N];
 
 void mulMat1() {
 	int i,j,k;
-	for(j=0;j<N;j++) {
-		for(i=0;i<N;i++) {
+	for(i=0;i<N;i++) {
+		for(j=0;j<N;j++) {
 			//c[i][j]=0;
 			for(k=0;k<N;k++)
-				c[i][j]=a[i][k]*b[k][j];			
+				c[i][j]=a[i][k]*b[i][k];			
 		}
 	}
 }
@@ -25,10 +25,10 @@ void mulMat1() {
 void mulMat2() {
 	int i,j,k;
 	for(i=0;i<N;i++) {
-		for(k=0;k<N;k++) {
+		for(j=0;j<N;j++) {
 			//c[i][j]=0;
-			for(j=0;j<N;j++)
-				c[i][j]=a[i][k]*b[k][j];
+			for(k=0;k<N;k++)
+				c[i][j]=a[i][k]*b[j][k];
 				//c[i][j]=a[i][k]*b[k][j];			
 		}
 	}

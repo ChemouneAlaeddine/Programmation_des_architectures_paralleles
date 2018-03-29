@@ -3,8 +3,8 @@
 #define CONSTANTS_IS_DEF
 
 
-#define WIN_WIDTH   1280
-#define WIN_HEIGHT  1280
+#define WIN_WIDTH   800//1280
+#define WIN_HEIGHT  800//1280
 
 //#define WIN_WIDTH   1024
 //#define WIN_HEIGHT  1024

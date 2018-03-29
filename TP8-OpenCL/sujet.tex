@@ -1,0 +1,362 @@
+\documentclass[a4paper]{article}
+
+\usepackage{fullpage}
+\usepackage{graphicx}
+\usepackage{boxedminipage}
+\usepackage[latin9]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[francais]{babel}
+\usepackage[obeyspaces]{url} %\documentclass{article}
+
+\parindent=0cm
+\begin{document}
+
+\title{Calcul vectoriel sur GPU : OpenCL}
+\author{} \date{}
+\maketitle
+
+
+Il s'agit de s'initier au calcul vectoriel grâce à OpenCL qui permet
+de programmer les cartes graphiques des ordinateurs du CREMI.  Vous
+trouverez des ressources utiles dans le répertoire :
+
+\hspace{1cm} \verb+/net/cremi/rnamyst/etudiants/pmg/opencl/+. \\
+
+Pour les TP et projets nous utiliserons prioritairement les cartes
+graphiques de Nvidia kepler K2000 des salles 203/008 et la carte K20Xm
+du serveur tesla. La carte K2000 est
+équipée de deux multipocesseurs de 192 c½urs chacun, la carte K20Xm
+dispose quant à elle de quatorze multipocesseurs.
+
+
+% \section{Matériel}
+
+% Lancez
+
+% \verb+/net/cremi/sathibau/hwloc-cuda/utils/lstopo --whole-accelerators+
+
+% pour avoir le détail de la carte NVIDIA que vous allez utiliser. Chaque
+% petit carré est un c½ur, vous pouvez enlever l'option
+% \verb+--whole-accelerators+ pour éviter d'avoir à les compter.
+\medskip
+
+Dans la plupart des (squelettes de) programmes d'exemples qui vous
+sont fournis, les options en ligne de commande suivantes sont
+disponibles:
+
+\noindent\verb+prog { options } <tile1> [<tile2>]+
+
+\noindent\verb+options:+
+\begin{quote}
+\begin{tabular}{lp{10cm}}
+  \verb+-g | --gpu-only+ & Exécute le noyau OpenCL uniquement sur GPU même si
+  une implémentation OpenCL est disponible pour les CPU\\
+  \verb+-s <n> | --size <n>+ & Exécute le noyau OpenCL avec $n$
+  threads ($n \times n$ si le problème est en 2D). Il est possible de
+  spécifier des kilo-octets (avec le suffixe k) ou des méga-octets
+  (avec le suffixe m). Ainsi, \verb+-s 2k+ est équivalent à \verb+-s 2048+.\\
+\end{tabular}
+\end{quote}
+\noindent\verb+tile+ permet de fixer la taille du workgroup à
+$\mbox{tile1}$ threads ($\mbox{tile1} \times \mbox{tile1}$ ou bien
+$\mbox{tile1} \times \mbox{tile2}$ threads si le problème est en 2D).
+
+\section{Découverte}
+
+OpenCL est à la fois une bibliothèque et une extension du langage C
+permettant d'écrire des programmes s'exécutant sur une (ou plusieurs)
+cartes graphiques. Le langage OpenCL est très proche du C, et introduit
+un certain nombre de qualificateurs parmi lesquels :
+\begin{itemize}
+\item \verb+__kernel+ permet de déclarer une fonction exécutée sur
+  la carte et dont l'exécution peut être sollicitée depuis les
+  processeurs hôtes
+\item \verb+__global+ pour qualifier des pointeurs vers la mémoire
+  globale de la carte graphique
+\item \verb+__local+ pour qualifier une variable partagée par tous les
+  threads d'un même << \emph{workgroup} >>
+\end{itemize}
+
+La carte graphique ne peut pas accéder\footnote{En tout cas, pas de
+  manière efficace} à la mémoire du processeur, il faut donc
+transférer les données dans la mémoire de la carte avant de commencer
+un travail. La manipulation (allocation, libération, etc.)  de la
+mémoire de la carte se fait par des fonctions spéciales exécutées
+depuis l'hôte :
+\begin{itemize}
+\item \verb+clCreateBuffer+ pour allouer un tampon de données dans la
+  mémoire de la carte ;
+\item \verb+clReleaseMemObject+ pour le libérer ;
+\item \verb+clEnqueueWriteBuffer+ et \verb+clEnqueueReadBuffer+ pour
+  transférer des données respectivement depuis la mémoire centrale
+  vers la mémoire du GPU et dans l'autre sens.
+\end{itemize}
+
+Vous trouverez une synthèse des primitives OpenCL utiles dans un <<
+\emph{Quick Reference Guide} >> situé ici : \\
+
+\noindent\verb+/net/cremi/rnamyst/etudiants/opencl/Doc/opencl-1.2-quick-reference-card.pdf+\\
+
+% En cas de doute sur le prototype ou le comportement d'une fonction, on
+% pourra se reporter au guide de programmation OpenCL accessible au même
+% endroit :\\
+
+% \noindent\verb+/net/cremi/rnamyst/etudiants/opencl/Doc/opencl-1.2.pdf+\\
+
+Lorsqu'on execute un << noyau >> sur une carte graphique, il faut
+indiquer combien de threads on veut créer selon chaque dimension (les
+problèmes peuvent s'exprimer selon 1, 2 ou 3 dimensions), et de quelle
+manière on souhaite regrouper ces threads au sein de
+\emph{workgroups}. Les threads d'un même workgroup peuvent partager de
+la mémoire locale, ce qui n'est pas possible entre threads de
+workgroups différents.
+
+À l'intérieur d'un noyau exécuté par le GPU, des variables sont
+définies afin de connaître les coordonnées absolues ou relatives
+au \emph{workgroup} dans lequel le thread se trouve, ou encore les dimensions
+des \emph{workgroups} :\\
+\
+\verb+get_num_groups(d)+ : dimension de la grille de workgroups selon
+la d$^{ieme}$ dimension\\
+\verb+get_group_id(d)+ : position du workgroup courant selon
+la d$^{ieme}$ dimension\\
+\verb+get_global_id(d)+ : position absolue du thread courant selon
+la d$^{ieme}$ dimension\\
+\verb+get_global_size(d)+ : nombre labsolu de threads selon
+la d$^{ieme}$ dimension\\
+\verb+get_local_id(d)+ : position relative du thread à l'intérieur du
+workgroup courant selon la d$^{ieme}$ dimension\\
+\verb+get_local_size(d)+ : nombre de thread par workgroup selon la d$^{ieme}$ dimension\\
+
+
+Le dessin suivant montre ceci de manière visuelle.
+
+% S'il faut bien veiller à créer un grand nombre de threads pour
+% recouvrir les temps d'accès à la mémoire, il faut aussi veiller à ne
+% pas constituer de workgroups trop gros en nombre de threads ni en
+% mémoire locale exigée. 
+
+\includegraphics[width=\textwidth]{blocks.pdf}
+
+\section{Multiplication d'un vecteur par un scalaire}
+
+
+% Lisez attentivement le fichier \verb+vector.c+ et examinez comment
+% sont détectées les cartes graphiques disponibles, comment le << noyau
+% >> destiné à s'exécuter sur la carte est compilé, comment est
+% transféré le vecteur et enfin comment l'exécution du noyau est lancée.
+
+Regardez le code source du noyau dans \verb+vector.cl+. Remarquez
+qu'on fait travailler les threads adjacents sur des éléments adjacents
+du tableau: contrairement à ce qu'on a vu pour les CPUs, dans le cas
+des GPU c'est la meilleure façon de faire, car les threads sont
+ordonnancés sur un multiprocesseur par paquets de 32 (ces paquets
+appelés \emph{warp}): ils lisent ensemble en mémoire (lecture dite
+\emph{coalescée}) et calculent exactement de la même façon. Jouez avec
+la taille des \emph{workgroups} (4, 8, 16, 32,...) en sachant qu'un
+workgroup ne peut pas contenir plus de 1024 éléments sur nos cartes.
+
+
+Faire en sorte que le kernel \verb+vector.cl+ implémente le produit d'un vecteur par un
+scalaire. Modifiez ensuite ce code pour que chaque thread traite l'élément d'indice
+\url{(get_global_id(0)+16)} modulo le nombre de threads. Normalement,
+le programme doit encore fonctionner.
+
+Le paramètre du \verb+vector TILE+ permet de modifier la taille des
+\emph{workgroups} employés . Exécutez le programme en jouant avec la
+taille des \emph{workgroups} sans dépasser les 1024 éléments (limite
+de nos cartes). Quelle taille donne les meilleures performances ?
+
+
+% \section{Inversion par morceaux des éléments d'un vecteur}
+
+% Modifiez le programme \verb+SwapVector+ afin qu'il inverse l'ordre des
+% éléments (effet miroir).
+
+
+\section{Addition de matrices}
+
+Modifier le kernel Le programme \verb+addMat.cl+  afin d'effectuer une addition de matrices.%  Oui, le code de chaque thread est
+% trivial: il ne s'occupe que d'une addition !  Pour comprendre comment
+% toute l'addition est effectuée, il faut aller voir le code de
+% \verb+addmat.cl+. Remarquez, dans le programme \verb+addmat.c+,
+% comment le nombre de threads et les dimensions des workgroups sont
+% fixées.
+Lors d'un appel \verb+addMat TILE1 TILE2+ le calcul est structuré en deux
+dimensions : les workgroups sont constitués de \verb+TILE1+ $\times$
+\verb+TILE2+ threads.  
+
+% \begin{enumerate}
+% \item Examinez soigneusement le calcul des indices dans \verb+addmat.cl+. 
+% \item 
+
+Exécutez le programme en jouant avec la taille des \emph{workgroups} sans
+dépasser les 1024 éléments (limite de nos cartes). Comparer les performances
+obtenues pour différentes décompositions de 256 ($256 \times 1$, $128 \times
+2$, $64 \times 4$,..., $1 \times 256$) .
+%\end{enumerate}                 
+
+
+% Dans le cas des GPU, on appelle souvent (à tort) \emph{speedup} le
+% rapport du temps nécessaire sur CPU et celui sur GPU. \verb+add_mat+
+% vous l'indique. Tracez une courbe du \emph{speedup} obtenu en fonction
+% de la valeur de \verb+TILE+ (que vous pouvez passer en paramètre au
+% programme, et utilisez une boucle \verb+for+ en shell). Utilisez
+% \verb+set logscale x 2+ pour que ce soit plus lisible. Utilisez aussi des workgroups pas forcéments \og
+% carrés\fg{}, par exemple $(\mbox{TILE}\times 2,\frac{\mbox{TILE}}{2})$.
+
+% Ajouter du code pour calculer la «\,bande passante utilisée synthétique\,» (en
+% Go/s), c'est-à-dire le nombre d'octets lus ou écrits en mémoire
+% globale par unité de temps. Comparez à la capacité théorique de la
+% mémoire de la carte NVIDIA K2000.
+
+
+
+\section{Effet de la divergence sur les performances}
+
+L'objectif est de mesurer l'influence d'un saut conditionnel sur les
+performances : que se passe-t-il lorsque la moitié des threads ne fait
+pas le même calcul que l'autre. 
+
+\begin{enumerate}
+\item  Modifiez le noyau \verb#vector.cl#  de sorte que chaque thread exécute 10 
+fois la multiplication pour bien mettre en valeur le phénomène. 
+
+\item Dupliquer le répertoire afin de produire une version où les
+  threads d'indice pair calculent 10 fois une
+  multplication par le paramètre \verb#k#, les autres multipliant par
+  \verb#3.14#.
+
+\item Faire une deuxième version 
+où les groupes d'indice pair calculent les 10 multplications par \verb#k#, les
+autres celles par \verb#3.14#. 
+
+\item Faire une troisième version où les threads dont le numéro a son
+  ième bit à 1 (\verb#(index >>i)&1#) calculent les 10 multiplications
+  par \verb#k#, les autres celles par \verb#3.14#. Quelle est la plus
+  petite valeur de \verb#i# pour la quelle on observe de bonnes
+  performances ?
+\end{enumerate}
+
+
+\section{Transposition de matrice.}
+
+L'objectif du programme \verb+Transpose+ est de calculer la transposée
+d'une matrice. Il s'agit << simplement >> de calculer
+\verb+B[i][j] = A[j][i]+.
+La version qui vous est fournie est une version manipulant directement
+la mémoire globale.  
+
+\begin{enumerate}
+\item Expliquez pourquoi cette version ne peut pas être très 
+performante (appuyez vous sur les expériences réalisées 
+sur la somme de matrices). 
+
+\item En utilisant un tampon de taille\footnote{la valeur \texttt{TILE} récupérée en ligne de commande est 
+automatiquement transmise au noyau OpenCL sous forme d'une constante 
+lors de la compilation. } \verb+TILE+$\times$\verb+TILE+ en mémoire 
+locale au sein de chaque workgroup, arrangez-vous pour que les lectures \emph{et}
+les écritures mémoire soient correctement coalescées. 
+
+\item Est-il utile d'utiliser une barrière  \verb#barrier(CLK_LOCAL_MEM_FENCE)# pour synchroniser les threads d'un même 
+workgroup ?
+
+\item Que se passe-t-il si on utilise un tableau temporaire de dimensions 
+\verb+TILE+$\times$\verb#TILE + 1# ? 
+\end{enumerate}
+
+
+
+% \section{Propagation de la chaleur en 1D}
+
+% Le répertoire \verb+Heat+ contient une version volontairement très simpliste d'une
+% simulation de propagation de chaleur, en 1D. Regardez la version CPU
+% \verb+heat()+: on effectue simplement une moyenne pondérée. Pour
+% simplifier, on ignore les problèmes de bord.
+
+% Pourquoi pour la comparaison des résultats on ne compare pas simplement
+% avec \verb+==+ ?
+
+% % Vous remarquerez que les performances ne sont pas terribles. 
+
+% Tracez une courbe du \emph{speedup} obtenu en fonction du nombre de
+% threads par block (\verb+TILE+). 
+% %Le problème est que chaque thread effectue
+% %plusieurs accès mémoire qui ne sont du coup pas du tout
+% %alignés.
+%  \'Elaborez une version utilisant un tampon partagé au sein de
+% chaque workgroup, de façon à réaliser un miminum de lectures/écritures
+% depuis/vers la mémoire globale de la carte.
+
+% \section{Stencil2D}
+
+% Le répertoire \verb+Stencil2D+ contient une version simple d'un calcul
+% de type << \emph{stencil} >> sur une grille à deux
+% dimensions. Observer la version CPU (fonction \emph{stencil}) ainsi
+% que la version GPU (fichier \emph{stencil.cl}): il s'agit de calculer
+% une moyenne pondérée de la valeur des voisins.
+
+% Une version plus optimisée consiste à utiliser un tampon local
+% pour précharger une << tuile >> de la matrice, et ensuite effectuer
+% les calculs en minimisant les accès mémoires globaux. 
+% À vous de jouer!
+
+
+\section{Réduction}
+
+
+Il s'agit de calculer la somme des éléments d'un tableau. L'idée de base est
+que chaque workgroup  calcule la somme de ses éléments et place son
+résultat dans un tableau annexe. Une fois le tableau annexe complété
+on itère le processus en relançant le noyau jusqu'à obtenir le
+résultat. Le profil du noyau est le suivant :
+
+
+\verb#__kernel void reduction(__global float *vec, int debut, int fin)#
+
+
+Pour simplifier l'exercice nous utilisons en effet un seul tableau
+\verb#vec# et par convention les éléments dont on doit faire la somme
+auront leurs indices dans \verb#[debut,fin[#. Chaque workgroup écrira
+sa somme partielle à l'indice \verb#fin + get_group_id(0)#.  Au final
+le résultat sera placé dans \verb#vec[fin]# par le dernier appel au
+noyau.
+  
+
+Dans un premier temps on suppose qu'on lance autant de threads que d'éléments.
+\begin{enumerate}
+\item Écrire le code du noyau \verb#reduction#. Exemple d'algorithme : chaque thread range
+  son élément dans d'un tableau en mémoire locale (dans sa case), puis seule la première
+  moitié des threads continue le calcul en ajoutant à \og sa
+  case\fg{} la valeur d'un élément d'un thread devenu inactif. On
+  itére ce processus pour obtenir le résultat.
+ 
+\item Vérifier la qualité du résultat obtenu sur un un seul workgroup
+  : au départ on peut considérer un vecteur de 8 éléments puis on
+  augmente le nombre d'éléments.
+
+\item Mettre en place le lancement itératif du noyau. On remarquera
+  que le nombre d'éléments calculés par un appel au noyau est ici égal
+  au nombre de workgroup lancés (c'est le nombre de threads divisé par
+  la taille unitaire d'un workgroup). Il faudra faire en sorte que le
+  nombre de threads ne dépasse pas le nombre d'éléments. Encore une
+  fois on pourra commencer 
+\end{enumerate}
+
+On désire maintenant pouvoir lancé moins de threads qu'il n'y a
+d'éléments. Pour cela il suffit de faire en sorte que, dans un premier
+temps, chaque threads fasse le cumul des éléments congru à leur
+identité globale modulo le nombre total de threads. Il fois cette
+somme réalisée on peut enchaîner sur la technique de calcul
+précédente.
+
+Faire quelques expériences en jouant sur le nombre de threads via
+l'option \verb#-t#  (qui doit apparaître après l'option \verb#-s#
+pare exemple : 
+
+\verb#./Vector -s 64m -t 1m 128#
+
+
+Quelle est la meilleure combinaison pour traiter 64M éléments ? 
+
+\end{document}

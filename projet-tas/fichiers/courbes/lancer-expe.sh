@@ -15,8 +15,8 @@ for nb in $ITE; do for OMP_NUM_THREADS in $THREADS ; do echo -n "$OUTPUT $OMP_NU
 
 #for i in 256 512 1024 ;
 #do
-	     execute  $i -v omp_task
+	     execute  $i -v seq
 	     #execute  $i -v omp_tiled
-	     execute $i -ft -v omp_tiled
+	     execute $i -ft -v omp
 
 #done

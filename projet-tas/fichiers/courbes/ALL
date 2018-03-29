@@ -46,3 +46,75 @@
 -ft-vomp_tiled 4 1050.823
 -ft-vomp_tiled 8 2000.110
 -ft-vomp_tiled 12 2946.384
+-vomp_task 1 291.544
+-vomp_task 4 985.839
+-vomp_task 8 251.224
+-vomp_task 12 252.396
+-vomp_task 1 248.122
+-vomp_task 4 1011.838
+-vomp_task 8 255.882
+-vomp_task 12 254.617
+-vomp_task 1 245.155
+-vomp_task 4 1004.885
+-vomp_task 8 258.101
+-vomp_task 12 259.823
+-ft-vomp_tiled 1 258.154
+-ft-vomp_tiled 4 625.885
+-ft-vomp_tiled 8 213.499
+-ft-vomp_tiled 12 221.848
+-ft-vomp_tiled 1 249.555
+-ft-vomp_tiled 4 639.579
+-ft-vomp_tiled 8 217.190
+-ft-vomp_tiled 12 228.019
+-ft-vomp_tiled 1 256.497
+-ft-vomp_tiled 4 641.688
+-ft-vomp_tiled 8 206.779
+-ft-vomp_tiled 12 211.155
+-vseq 1 736.362
+-vseq 4 701.261
+-vseq 8 705.697
+-vseq 12 721.133
+-vseq 1 715.362
+-vseq 4 703.939
+-vseq 8 711.603
+-vseq 12 694.937
+-vseq 1 698.118
+-vseq 4 709.583
+-vseq 8 708.755
+-vseq 12 702.602
+-ft-vomp_seq 1 Error: Cannot resolve symbol XÀ‡qí
+-ft-vomp_seq 4 Error: Cannot resolve symbol X;g
+-ft-vomp_seq 8 Error: Cannot resolve symbol Xã7•ñ
+-ft-vomp_seq 12 Error: Cannot resolve symbol X+Kôá
+-ft-vomp_seq 1 Error: Cannot resolve symbol Xã‰´z
+-ft-vomp_seq 4 Error: Cannot resolve symbol X;yÇ
+-ft-vomp_seq 8 Error: Cannot resolve symbol Xõío
+-ft-vomp_seq 12 Error: Cannot resolve symbol Xk…Ò»
+-ft-vomp_seq 1 Error: Cannot resolve symbol X{_
+-ft-vomp_seq 4 Error: Cannot resolve symbol XõÄ…ç
+-ft-vomp_seq 8 Error: Cannot resolve symbol X˚¡w
+-ft-vomp_seq 12 Error: Cannot resolve symbol XkÊ{Â
+-vseq 1 749.659
+-vseq 4 697.401
+-vseq 8 691.305
+-vseq 12 693.348
+-vseq 1 698.800
+-vseq 4 707.667
+-vseq 8 694.769
+-vseq 12 704.876
+-vseq 1 704.851
+-vseq 4 694.727
+-vseq 8 709.377
+-vseq 12 712.629
+-ft-vomp 1 827.344
+-ft-vomp 4 1197.817
+-ft-vomp 8 810.855
+-ft-vomp 12 818.141
+-ft-vomp 1 823.628
+-ft-vomp 4 1201.958
+-ft-vomp 8 800.017
+-ft-vomp 12 811.758
+-ft-vomp 1 835.064
+-ft-vomp 4 1180.866
+-ft-vomp 8 825.733
+-ft-vomp 12 813.994

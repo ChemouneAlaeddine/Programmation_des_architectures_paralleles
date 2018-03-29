@@ -144,7 +144,13 @@ __kernel void transpose_naif (__global unsigned *in, __global unsigned *out)
 
 __kernel void transpose (__global unsigned *in, __global unsigned *out)
 {
-  // TODO
+  int x = get_global_id (0);
+  int y = get_global_id (1);
+
+  __local unsigned tmp[TILEY][TILEX];
+
+  barrier(CLK_LOCAL_MEM_FENCE);
+  out [x * DIM + y] = in [y * DIM + x];
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -167,11 +173,11 @@ __kernel void tiles (__global unsigned *in, __global unsigned *out)
   unsigned mask = 0xFF - (PIX_BLOC - 1);
 
   if (xloc % PIX_BLOC == 0 && yloc % PIX_BLOC == 0)
-    couleur [yloc / PIX_BLOC][xloc / PIX_BLOC] = in [y * DIM + x];
+    couleur [yloc / PIX_BLOC][xloc / PIX_BLOC] = in [(y * DIM + x)];
 
   barrier (CLK_LOCAL_MEM_FENCE); // pas utile si PIX_BLOC <= 16
 
-  out [y * DIM + x] = couleur [yloc & mask][xloc & mask];
+  out [y * DIM + x] = couleur [(yloc * (TILEY/PIX_BLOC) + xloc) & mask][(yloc * (TILEY/PIX_BLOC) + xloc) & mask];
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -180,7 +186,19 @@ __kernel void tiles (__global unsigned *in, __global unsigned *out)
 
 __kernel void pixellize (__global unsigned *in, __global unsigned *out)
 {
-  // TODO
+  __local unsigned couleur [TILEY / PIX_BLOC][TILEX / PIX_BLOC];
+  int x = get_global_id (0);
+  int y = get_global_id (1);
+  int xloc = get_local_id (0);
+  int yloc = get_local_id (1);
+  unsigned mask = 0xFF - (PIX_BLOC - 1);
+
+  if (xloc % PIX_BLOC == 0 && yloc % PIX_BLOC == 0)
+    couleur [yloc / PIX_BLOC][xloc / PIX_BLOC] = in [y * DIM + x];
+
+  barrier (CLK_LOCAL_MEM_FENCE); // pas utile si PIX_BLOC <= 16
+
+  out [y * DIM + x] = couleur [yloc & mask][xloc & mask];
 }
 
 
